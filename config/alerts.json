@@ -1,0 +1,13 @@
+[
+  {"source": "stock",  "symbol": "*",        "field": "pct_change", "operator": "<=", "threshold": -3.0, "message": "Sharp drop — down 3% or more"},
+  {"source": "stock",  "symbol": "*",        "field": "pct_change", "operator": ">=", "threshold":  3.0, "message": "Sharp rise — up 3% or more"},
+  {"source": "stock",  "symbol": "VCB",      "field": "pct_change", "operator": "<=", "threshold": -2.0, "message": "VCB dropped 2% or more"},
+  {"source": "stock",  "symbol": "VCB",      "field": "pct_change", "operator": ">=", "threshold":  2.0, "message": "VCB rose 2% or more"},
+  {"source": "crypto", "symbol": "*",        "field": "pct_change", "operator": "<=", "threshold": -5.0, "message": "Sharp drop — down 5% or more"},
+  {"source": "crypto", "symbol": "*",        "field": "pct_change", "operator": ">=", "threshold":  5.0, "message": "Sharp rise — up 5% or more"},
+  {"source": "crypto", "symbol": "BTC/USDT", "field": "pct_change", "operator": "<=", "threshold": -3.0, "message": "BTC dropped 3% or more"},
+  {"source": "crypto", "symbol": "BTC/USDT", "field": "pct_change", "operator": ">=", "threshold":  3.0, "message": "BTC rose 3% or more"},
+  {"source": "crypto", "symbol": "ETH/USDT", "field": "pct_change", "operator": "<=", "threshold": -3.0, "message": "ETH dropped 3% or more"},
+  {"source": "crypto", "symbol": "ETH/USDT", "field": "pct_change", "operator": ">=", "threshold":  3.0, "message": "ETH rose 3% or more"},
+  {"source": "*",      "symbol": "*",        "field": "price",      "operator": "==", "threshold":  0.0, "message": "Price is zero — possible data issue"}
+]

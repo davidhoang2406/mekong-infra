@@ -1,0 +1,5 @@
+{
+  "exchange": "HOSE",
+  "symbols": ["VCB", "ACB", "TCB", "VNM", "HPG", "VIC"],
+  "poll_interval_seconds": 30
+}

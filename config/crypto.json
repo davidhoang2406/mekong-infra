@@ -1,0 +1,5 @@
+{
+  "exchange": "binance",
+  "symbols": ["BTC/USDT", "ETH/USDT", "BNB/USDT", "SOL/USDT"],
+  "poll_interval_seconds": 5
+}
