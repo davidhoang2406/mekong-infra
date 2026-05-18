@@ -1,0 +1,7 @@
+pyspark==4.1.1
+pandas>=2.2
+matplotlib>=3.9
+fastavro>=1.9
+minio>=7.2
+python-dotenv>=1.0
+market-data-models @ git+https://github.com/davidhoang2406/mekong-data-models.git
