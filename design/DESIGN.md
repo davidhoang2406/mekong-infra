@@ -171,8 +171,8 @@ All Kafka messages share one JSON envelope (defined in `schemas/message.py`):
 | 8  | ✅ | `ohlcv_daily_ingest` — Spark Docker cluster, S3A, derive OHLCV | Spark cluster mode, S3A connector |
 | 9  | ✅ | `TechnicalJob` — SMA/RSI/MACD/BB over OHLCV Parquet history | Window functions, `applyInPandas` for EMA |
 | 10 | ✅ | **Dagster orchestrator** — asset-centric scheduling of batch jobs | Software-defined assets, daily partitions, backfills |
-| 11 | 📋 | `DigestJob` — gainers/losers/volume digest | Spark DataFrame rankings |
-| 12 | 📋 | `ScreenerJob` — P/E, D/E, EPS filter | Spark join/filter, config-driven thresholds |
+| 11 | ✅ | `DigestJob` — gainers/losers/volume digest | Spark DataFrame rankings |
+| 12 | ✅ | `ScreenerJob` — P/E, D/E, EPS filter | Spark join/filter, config-driven thresholds |
 | 13 | 📋 | `VolatilityBurstJob` — Flink sliding window + ValueState | Flink sliding windows |
 
 ---
