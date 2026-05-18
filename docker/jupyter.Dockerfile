@@ -5,7 +5,7 @@ FROM python:3.12-slim
 USER root
 
 RUN apt-get update -qq && \
-    apt-get install -y --no-install-recommends curl default-jre-headless && \
+    apt-get install -y --no-install-recommends curl git default-jre-headless && \
     rm -rf /var/lib/apt/lists/*
 
 ENV JAVA_HOME=/usr/lib/jvm/default-java
