@@ -83,6 +83,7 @@ services:
       FLINK_PROPERTIES: |
         jobmanager.rpc.address: flink-jobmanager
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      PYTHONPATH: /opt/project
     volumes:
       - ${MEKONG_JOBS_DIR:-../mekong-jobs}:/opt/project
     depends_on:
@@ -106,6 +107,7 @@ services:
         jobmanager.rpc.address: flink-jobmanager
         taskmanager.numberOfTaskSlots: 4
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      PYTHONPATH: /opt/project
     volumes:
       - ${MEKONG_JOBS_DIR:-../mekong-jobs}:/opt/project
     depends_on:
