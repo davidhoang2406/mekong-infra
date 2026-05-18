@@ -8,7 +8,7 @@ import os
 from dotenv import load_dotenv
 from minio import Minio
 from minio.commonconfig import ENABLED
-from minio.lifecycleconfig import Expiration, Filter, LifecycleConfig, Rule
+from minio.lifecycleconfig import Expiration, LifecycleConfig, Rule
 
 load_dotenv()
 
@@ -37,8 +37,7 @@ def _ensure(client: Minio, bucket: str) -> None:
 
 def _set_expiry(client: Minio, bucket: str, days: int) -> None:
     config = LifecycleConfig(
-        [Rule(ENABLED, rule_filter=Filter(prefix=""), rule_id="expire-all",
-              expiration=Expiration(days=days))]
+        [Rule(ENABLED, rule_id="expire-all", expiration=Expiration(days=days))]
     )
     client.set_bucket_lifecycle(bucket, config)
 
