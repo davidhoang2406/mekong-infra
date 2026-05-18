@@ -5,7 +5,7 @@
 
 PYTHON  := .venv/bin/python
 PIP     := .venv/bin/pip
-COMPOSE := docker compose -f docker/docker-compose.yml
+COMPOSE := docker compose
 
 # ── Venv setup ────────────────────────────────────────────────────────────────
 
