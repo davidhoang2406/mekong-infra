@@ -219,7 +219,7 @@ services:
       MINIO_ANALYSIS_BUCKET: ${MINIO_ANALYSIS_BUCKET:-market-analysis}
     volumes:
       - ${MEKONG_JOBS_DIR:-../mekong-jobs}:/opt/project
-      - ${MEKONG_JOBS_DIR:-../mekong-jobs}/dagster:/opt/dagster/app
+      - ${MEKONG_DAGSTER_DIR:-../mekong-dagster}:/opt/dagster/app
       - dagster_storage:/opt/dagster/dagster_home/storage
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
@@ -249,7 +249,7 @@ services:
       MINIO_ANALYSIS_BUCKET: ${MINIO_ANALYSIS_BUCKET:-market-analysis}
     volumes:
       - ${MEKONG_JOBS_DIR:-../mekong-jobs}:/opt/project
-      - ${MEKONG_JOBS_DIR:-../mekong-jobs}/dagster:/opt/dagster/app
+      - ${MEKONG_DAGSTER_DIR:-../mekong-dagster}:/opt/dagster/app
       - dagster_storage:/opt/dagster/dagster_home/storage
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
