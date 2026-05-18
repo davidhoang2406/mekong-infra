@@ -226,6 +226,9 @@ services:
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
       MINIO_BUCKET: ${MINIO_BUCKET:-market-data}
       MINIO_ANALYSIS_BUCKET: ${MINIO_ANALYSIS_BUCKET:-market-analysis}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      DAGSTER_WEBSERVER_URL: ${DAGSTER_WEBSERVER_URL:-http://localhost:3000}
     volumes:
       - ${MEKONG_JOBS_DIR:-../mekong-jobs}:/opt/project
       - ${MEKONG_DAGSTER_DIR:-../mekong-dagster}:/opt/dagster/app
@@ -256,6 +259,9 @@ services:
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
       MINIO_BUCKET: ${MINIO_BUCKET:-market-data}
       MINIO_ANALYSIS_BUCKET: ${MINIO_ANALYSIS_BUCKET:-market-analysis}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      DAGSTER_WEBSERVER_URL: ${DAGSTER_WEBSERVER_URL:-http://localhost:3000}
     volumes:
       - ${MEKONG_JOBS_DIR:-../mekong-jobs}:/opt/project
       - ${MEKONG_DAGSTER_DIR:-../mekong-dagster}:/opt/dagster/app
