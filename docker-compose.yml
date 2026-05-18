@@ -84,6 +84,10 @@ services:
         jobmanager.rpc.address: flink-jobmanager
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       PYTHONPATH: /opt/project
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_ANALYSIS_BUCKET: ${MINIO_ANALYSIS_BUCKET:-market-analysis}
     volumes:
       - ${MEKONG_JOBS_DIR:-../mekong-jobs}:/opt/project
     depends_on:
@@ -108,6 +112,10 @@ services:
         taskmanager.numberOfTaskSlots: 4
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       PYTHONPATH: /opt/project
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_ANALYSIS_BUCKET: ${MINIO_ANALYSIS_BUCKET:-market-analysis}
     volumes:
       - ${MEKONG_JOBS_DIR:-../mekong-jobs}:/opt/project
     depends_on:

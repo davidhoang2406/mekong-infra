@@ -173,7 +173,7 @@ All Kafka messages share one JSON envelope (defined in `schemas/message.py`):
 | 10 | ✅ | **Dagster orchestrator** — asset-centric scheduling of batch jobs | Software-defined assets, daily partitions, backfills |
 | 11 | ✅ | `DigestJob` — gainers/losers/volume digest | Spark DataFrame rankings |
 | 12 | ✅ | `ScreenerJob` — P/E, D/E, EPS filter | Spark join/filter, config-driven thresholds |
-| 13 | 📋 | `VolatilityBurstJob` — Flink sliding window + ValueState | Flink sliding windows |
+| 13 | ✅ | `VolatilityBurstJob` — Flink sliding window + ValueState | Flink sliding windows |
 
 ---
 
