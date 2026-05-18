@@ -13,7 +13,7 @@ COPY --from=jdk-headers /opt/java/openjdk/include /opt/java/openjdk/include
 RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends \
         python3 python3-pip python3-dev \
-        build-essential curl && \
+        build-essential curl git && \
     rm -rf /var/lib/apt/lists/*
 
 # Allow pip to install into the system Python (intentional in a container)
@@ -23,6 +23,12 @@ RUN ln -s /usr/bin/python3 /usr/bin/python
 
 # PyFlink version must match the Flink cluster version
 RUN pip3 install apache-flink==2.0.0 python-dotenv
+
+# Copy market_data_models directly — pip git installs are unreliable on
+# Python 3.10 inside this base image due to externally-managed env quirks.
+RUN git clone --depth=1 https://github.com/davidhoang2406/mekong-data-models.git /tmp/mdm && \
+    cp -r /tmp/mdm/market_data_models /usr/local/lib/python3.10/dist-packages/ && \
+    rm -rf /tmp/mdm
 
 # Kafka connector JAR pre-loaded into Flink's lib dir — available to all
 # submitted jobs automatically, no env.add_jars() needed in job code.
