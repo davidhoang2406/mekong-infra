@@ -5,7 +5,9 @@ RUN pip install --no-cache-dir \
     "dagster-webserver==1.13.5" \
     "docker>=7.0" \
     "minio>=7.2" \
-    "python-dotenv>=1.0"
+    "python-dotenv>=1.0" \
+    "pyarrow>=14.0" \
+    "s3fs>=2024.2"
 
 RUN mkdir -p /opt/dagster/dagster_home/storage
 
