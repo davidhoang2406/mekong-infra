@@ -1,7 +1,8 @@
 .PHONY: up down build build-flink build-spark build-dagster build-jupyter \
         topics-create minio-init storage-flush \
         flink-up spark-up dagster-up dagster-down jupyter-up \
-        dagster-logs dagster-shell
+        dagster-logs dagster-shell \
+        logging-up logging-down logging-logs
 
 PYTHON  := .venv/bin/python
 PIP     := .venv/bin/pip
@@ -87,6 +88,17 @@ storage-flush: ## Selectively delete objects from MinIO buckets (irreversible)
 		fi; \
 		echo "Flush complete."; \
 	fi
+
+# ── Logging stack ─────────────────────────────────────────────────────────────
+
+logging-up: ## Start Loki + Promtail + Grafana → http://localhost:3001
+	$(COMPOSE) up -d loki promtail grafana
+
+logging-down: ## Stop logging stack
+	$(COMPOSE) stop loki promtail grafana
+
+logging-logs: ## Tail Loki + Promtail logs
+	$(COMPOSE) logs -f loki promtail
 
 # ── Interactive installer ─────────────────────────────────────────────────────
 
