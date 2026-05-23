@@ -2,7 +2,8 @@
         topics-create minio-init storage-flush \
         flink-up spark-up dagster-up dagster-down jupyter-up \
         dagster-logs dagster-shell \
-        logging-up logging-down logging-logs
+        logging-up logging-down logging-logs \
+        install uninstall
 
 PYTHON  := .venv/bin/python
 PIP     := .venv/bin/pip
@@ -110,7 +111,8 @@ install: .venv ## Interactively start selected services and initialise infrastru
 	read -p "  Spark (Master + Worker + History Server)? [y/n] " sp; \
 	read -p "  Jupyter (JupyterLab at :8888)? [y/n] " jup; \
 	read -p "  Dagster (webserver + daemon at :3000)? [y/n] " dag; \
-	if [ "$$k" != "y" ] && [ "$$m" != "y" ] && [ "$$fl" != "y" ] && [ "$$sp" != "y" ] && [ "$$jup" != "y" ] && [ "$$dag" != "y" ]; then \
+	read -p "  Logging stack (Loki + Promtail + Grafana at :3001)? [y/n] " log; \
+	if [ "$$k" != "y" ] && [ "$$m" != "y" ] && [ "$$fl" != "y" ] && [ "$$sp" != "y" ] && [ "$$jup" != "y" ] && [ "$$dag" != "y" ] && [ "$$log" != "y" ]; then \
 		echo "Nothing selected — aborted."; \
 	else \
 		services=""; \
@@ -120,6 +122,7 @@ install: .venv ## Interactively start selected services and initialise infrastru
 		if [ "$$sp" = "y" ]; then services="$$services spark-master spark-worker spark-history-server"; fi; \
 		if [ "$$jup" = "y" ]; then services="$$services jupyter"; fi; \
 		if [ "$$dag" = "y" ]; then services="$$services dagster-webserver dagster-daemon"; fi; \
+		if [ "$$log" = "y" ]; then services="$$services loki promtail grafana"; fi; \
 		if [ "$$fl" = "y" ]; then \
 			echo "Building PyFlink Docker image..."; \
 			$(COMPOSE) build flink-jobmanager flink-taskmanager; \
@@ -155,4 +158,15 @@ install: .venv ## Interactively start selected services and initialise infrastru
 			$(MAKE) topics-create; \
 		fi; \
 		echo "Setup complete."; \
+	fi
+
+uninstall: ## Stop all services and remove named volumes (irreversible — destroys all persisted data)
+	@echo "WARNING: this permanently removes all containers and named volumes"
+	@echo "         (Kafka data, MinIO objects, Loki logs, Grafana dashboards, etc.)."
+	@read -p "  Remove everything? [y/n] " confirm; \
+	if [ "$$confirm" = "y" ]; then \
+		$(COMPOSE) down -v; \
+		echo "All services and volumes removed."; \
+	else \
+		echo "Aborted."; \
 	fi
