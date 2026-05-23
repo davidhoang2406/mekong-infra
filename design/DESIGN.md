@@ -27,7 +27,11 @@ Kafka turns the pull into a push pipeline. Producers fetch from the upstream API
 
 **Data flow (left to right, top half is the live stream layer; bottom half is the batch layer):**
 
+Flow architecture
 ![Untitled-2026-05-17-0037.png](images/architecture.png)
+
+Logging architecture
+![logging-architecture.png](images/logging-architecture.png)
 
 Two-tier storage:
 - **`market-data`** — raw streaming data (Avro). 30-day lifecycle. Recoverable from upstream APIs.
