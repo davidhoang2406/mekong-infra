@@ -1,0 +1,28 @@
+# Local development override — automatically loaded by `docker compose`.
+#
+# Mounts the live mekong-jobs checkout over the baked-in image copy so code
+# changes take effect on container restart without a full image rebuild.
+#
+# Requires mekong-jobs checked out next to mekong-infra, or set MEKONG_JOBS_DIR
+# in .env to point at it:
+#   MEKONG_JOBS_DIR=/absolute/path/to/mekong-jobs
+#
+# For production (no live mounts), use:
+#   docker compose -f docker-compose.yml up -d
+
+services:
+  flink-jobmanager:
+    volumes:
+      - ${MEKONG_JOBS_DIR:-../mekong-jobs}:/opt/project
+
+  flink-taskmanager:
+    volumes:
+      - ${MEKONG_JOBS_DIR:-../mekong-jobs}:/opt/project
+
+  spark-master:
+    volumes:
+      - ${MEKONG_JOBS_DIR:-../mekong-jobs}:/opt/project
+
+  spark-worker:
+    volumes:
+      - ${MEKONG_JOBS_DIR:-../mekong-jobs}:/opt/project

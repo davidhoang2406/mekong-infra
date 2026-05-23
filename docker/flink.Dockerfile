@@ -34,3 +34,7 @@ RUN git clone --depth=1 https://github.com/davidhoang2406/mekong-data-models.git
 # submitted jobs automatically, no env.add_jars() needed in job code.
 RUN curl -fL -o $FLINK_HOME/lib/flink-sql-connector-kafka-4.0.1-2.0.jar \
     "https://repo1.maven.org/maven2/org/apache/flink/flink-sql-connector-kafka/4.0.1-2.0/flink-sql-connector-kafka-4.0.1-2.0.jar"
+
+# Bake mekong-jobs source into the image at /opt/project.
+# In local dev, docker-compose.override.yml mounts the live checkout over this.
+RUN git clone --depth=1 https://github.com/davidhoang2406/mekong-jobs.git /opt/project

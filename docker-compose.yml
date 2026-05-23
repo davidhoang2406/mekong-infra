@@ -3,12 +3,14 @@
 # Assumed directory layout (sibling repos cloned next to mekong-infra):
 #   Mekong/
 #     mekong-infra/        ← this file lives here
-#     mekong-jobs/         ← MEKONG_JOBS_DIR (default: ../mekong-jobs)
 #     mekong-notebooks/    ← MEKONG_NOTEBOOKS_DIR (default: ../mekong-notebooks)
 #
+# mekong-jobs is baked into the Flink and Spark images at build time.
+# For local dev with hot reload, docker-compose.override.yml re-mounts it.
+#
 # Override in .env if your repos are elsewhere:
-#   MEKONG_JOBS_DIR=/absolute/path/to/mekong-jobs
 #   MEKONG_NOTEBOOKS_DIR=/absolute/path/to/mekong-notebooks
+#   MEKONG_JOBS_DIR=/absolute/path/to/mekong-jobs   ← used by override only
 
 services:
   kafka:
@@ -90,8 +92,6 @@ services:
       MINIO_ANALYSIS_BUCKET: ${MINIO_ANALYSIS_BUCKET:-market-analysis}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
-    volumes:
-      - ${MEKONG_JOBS_DIR:-../mekong-jobs}:/opt/project
     depends_on:
       kafka:
         condition: service_healthy
@@ -120,8 +120,6 @@ services:
       MINIO_ANALYSIS_BUCKET: ${MINIO_ANALYSIS_BUCKET:-market-analysis}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
-    volumes:
-      - ${MEKONG_JOBS_DIR:-../mekong-jobs}:/opt/project
     depends_on:
       flink-jobmanager:
         condition: service_healthy
@@ -145,7 +143,6 @@ services:
       - "7077:7077"
       - "8082:8080"
     volumes:
-      - ${MEKONG_JOBS_DIR:-../mekong-jobs}:/opt/project
       - spark_logs:/tmp/spark-events
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080"]
@@ -169,8 +166,6 @@ services:
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
       MINIO_BUCKET: ${MINIO_BUCKET:-market-data}
       MINIO_ANALYSIS_BUCKET: ${MINIO_ANALYSIS_BUCKET:-market-analysis}
-    volumes:
-      - ${MEKONG_JOBS_DIR:-../mekong-jobs}:/opt/project
     depends_on:
       spark-master:
         condition: service_healthy
@@ -234,7 +229,6 @@ services:
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
       DAGSTER_WEBSERVER_URL: ${DAGSTER_WEBSERVER_URL:-http://localhost:3000}
     volumes:
-      - ${MEKONG_JOBS_DIR:-../mekong-jobs}:/opt/project
       - ${MEKONG_DAGSTER_DIR:-../mekong-dagster}:/opt/dagster/app
       - dagster_storage:/opt/dagster/dagster_home/storage
       - /var/run/docker.sock:/var/run/docker.sock
@@ -267,7 +261,6 @@ services:
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
       DAGSTER_WEBSERVER_URL: ${DAGSTER_WEBSERVER_URL:-http://localhost:3000}
     volumes:
-      - ${MEKONG_JOBS_DIR:-../mekong-jobs}:/opt/project
       - ${MEKONG_DAGSTER_DIR:-../mekong-dagster}:/opt/dagster/app
       - dagster_storage:/opt/dagster/dagster_home/storage
       - /var/run/docker.sock:/var/run/docker.sock
