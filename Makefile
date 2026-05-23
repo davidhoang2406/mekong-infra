@@ -1,13 +1,15 @@
-.PHONY: up down build build-flink build-spark build-dagster build-jupyter \
+.PHONY: up down prod-up \
+        build build-flink build-spark build-dagster build-jupyter prod-build \
         topics-create minio-init storage-flush \
         flink-up spark-up dagster-up dagster-down jupyter-up \
         dagster-logs dagster-shell \
         logging-up logging-down logging-logs \
         install uninstall
 
-PYTHON  := .venv/bin/python
-PIP     := .venv/bin/pip
-COMPOSE := docker compose
+PYTHON       := .venv/bin/python
+PIP          := .venv/bin/pip
+COMPOSE      := docker compose
+COMPOSE_PROD := docker compose -f docker-compose.yml
 
 # ── Venv setup ────────────────────────────────────────────────────────────────
 
@@ -18,18 +20,21 @@ COMPOSE := docker compose
 
 # ── Full stack ────────────────────────────────────────────────────────────────
 
-up: ## Start all infrastructure and application services
+up: ## Start all services — dev mode (override mounts live mekong-jobs)
 	$(COMPOSE) up -d
+
+prod-up: ## Start all services — production mode (baked mekong-jobs, no live mount)
+	$(COMPOSE_PROD) up -d
 
 down: ## Stop all services (volumes are preserved)
 	$(COMPOSE) down
 
 # ── Image builds ──────────────────────────────────────────────────────────────
 
-build-flink: ## Build PyFlink Docker image (downloads Kafka connector JAR)
+build-flink: ## Build Flink image (bakes mekong-jobs from GitHub)
 	$(COMPOSE) build flink-jobmanager flink-taskmanager
 
-build-spark: ## Build Spark Docker image (downloads S3A JARs)
+build-spark: ## Build Spark image (bakes mekong-jobs from GitHub)
 	$(COMPOSE) build spark-master spark-worker spark-history-server
 
 build-dagster: ## Build Dagster Docker image
@@ -39,6 +44,9 @@ build-jupyter: ## Build Jupyter Docker image (downloads S3A JARs + installs deps
 	$(COMPOSE) build jupyter
 
 build: build-flink build-spark build-dagster build-jupyter ## Build all images
+
+prod-build: ## Rebuild Flink + Spark images from scratch (fetches latest mekong-jobs)
+	$(COMPOSE) build --no-cache flink-jobmanager flink-taskmanager spark-master spark-worker spark-history-server
 
 # ── Per-service start ─────────────────────────────────────────────────────────
 
