@@ -40,31 +40,7 @@ entire observability stack.
 
 ## 3. Architecture
 
-```
-┌─────────────────────────────────────────────────────────┐
-│ Docker host                                             │
-│                                                         │
-│  kafka  flink-*  spark-*  dagster-*  minio  jupyter     │
-│    │       │        │         │        │       │         │
-│    └───────┴────────┴─────────┴────────┴───────┘         │
-│                   stdout / stderr                        │
-│                        │                                │
-│              ┌─────────▼──────────┐                     │
-│              │     promtail       │ ← /var/run/docker.sock│
-│              │  (Docker SD)       │                     │
-│              └─────────┬──────────┘                     │
-│                        │  HTTP push                     │
-│              ┌─────────▼──────────┐                     │
-│              │       loki         │ :3100               │
-│              │  (log storage)     │                     │
-│              └─────────┬──────────┘                     │
-│                        │  LogQL                         │
-│              ┌─────────▼──────────┐                     │
-│              │      grafana       │ :3001               │
-│              │  (UI + dashboards) │                     │
-│              └────────────────────┘                     │
-└─────────────────────────────────────────────────────────┘
-```
+![logging-architecture.png](../images/logging-architecture.png)
 
 Promtail uses Docker service discovery (`docker_sd_configs`) to find every
 running container automatically — no per-service configuration is needed when
