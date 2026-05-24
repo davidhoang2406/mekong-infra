@@ -74,6 +74,7 @@ jupyter-up: ## Start MinIO + Jupyter → http://localhost:8888 (set JUPYTER_TOKE
 
 # ── Infrastructure initialisation ─────────────────────────────────────────────
 
+# NOTE: replication-factor 1 — dev only; match to broker count before using in production
 topics-create: ## Create Kafka topics (safe to re-run — uses --if-not-exists)
 	docker exec kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
 		--create --if-not-exists --topic stock.price.realtime  --partitions 6 --replication-factor 1
