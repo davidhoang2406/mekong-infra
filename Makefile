@@ -1,13 +1,16 @@
-.PHONY: up down build build-flink build-spark build-dagster build-jupyter \
+.PHONY: up down prod-up \
+        build build-flink build-spark build-dagster build-jupyter prod-build \
         topics-create minio-init storage-flush \
         flink-up spark-up dagster-up dagster-down jupyter-up \
         dagster-logs dagster-shell \
         logging-up logging-down logging-logs \
-        install uninstall
+        install uninstall \
+        ci
 
-PYTHON  := .venv/bin/python
-PIP     := .venv/bin/pip
-COMPOSE := docker compose
+PYTHON       := .venv/bin/python
+PIP          := .venv/bin/pip
+COMPOSE      := docker compose
+COMPOSE_PROD := docker compose -f docker-compose.yml
 
 # ── Venv setup ────────────────────────────────────────────────────────────────
 
@@ -18,18 +21,21 @@ COMPOSE := docker compose
 
 # ── Full stack ────────────────────────────────────────────────────────────────
 
-up: ## Start all infrastructure and application services
+up: ## Start all services — dev mode (override mounts live mekong-jobs)
 	$(COMPOSE) up -d
+
+prod-up: ## Start all services — production mode (baked mekong-jobs, no live mount)
+	$(COMPOSE_PROD) up -d
 
 down: ## Stop all services (volumes are preserved)
 	$(COMPOSE) down
 
 # ── Image builds ──────────────────────────────────────────────────────────────
 
-build-flink: ## Build PyFlink Docker image (downloads Kafka connector JAR)
+build-flink: ## Build Flink image (bakes mekong-jobs from GitHub)
 	$(COMPOSE) build flink-jobmanager flink-taskmanager
 
-build-spark: ## Build Spark Docker image (downloads S3A JARs)
+build-spark: ## Build Spark image (bakes mekong-jobs from GitHub)
 	$(COMPOSE) build spark-master spark-worker spark-history-server
 
 build-dagster: ## Build Dagster Docker image
@@ -39,6 +45,9 @@ build-jupyter: ## Build Jupyter Docker image (downloads S3A JARs + installs deps
 	$(COMPOSE) build jupyter
 
 build: build-flink build-spark build-dagster build-jupyter ## Build all images
+
+prod-build: ## Rebuild Flink + Spark images from scratch (fetches latest mekong-jobs)
+	$(COMPOSE) build --no-cache flink-jobmanager flink-taskmanager spark-master spark-worker spark-history-server
 
 # ── Per-service start ─────────────────────────────────────────────────────────
 
@@ -60,11 +69,12 @@ dagster-logs: ## Tail Dagster webserver + daemon logs
 dagster-shell: ## Open a shell in the dagster-webserver container
 	docker exec -it dagster-webserver bash
 
-jupyter-up: ## Start MinIO + Jupyter → http://localhost:8888 (no token)
+jupyter-up: ## Start MinIO + Jupyter → http://localhost:8888 (set JUPYTER_TOKEN=<token> in .env to require a token)
 	$(COMPOSE) up -d minio jupyter
 
 # ── Infrastructure initialisation ─────────────────────────────────────────────
 
+# NOTE: replication-factor 1 — dev only; match to broker count before using in production
 topics-create: ## Create Kafka topics (safe to re-run — uses --if-not-exists)
 	docker exec kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
 		--create --if-not-exists --topic stock.price.realtime  --partitions 6 --replication-factor 1
@@ -102,6 +112,11 @@ logging-logs: ## Tail Loki + Promtail logs
 	$(COMPOSE) logs -f loki promtail
 
 # ── Interactive installer ─────────────────────────────────────────────────────
+
+ci: .venv ## Lint Python scripts and validate Docker Compose config (no containers required)
+	$(PIP) install --quiet ruff
+	.venv/bin/ruff check db/
+	$(COMPOSE) config --quiet
 
 install: .venv ## Interactively start selected services and initialise infrastructure
 	@echo "Select services to start:"

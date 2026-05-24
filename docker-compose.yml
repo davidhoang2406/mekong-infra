@@ -3,17 +3,21 @@
 # Assumed directory layout (sibling repos cloned next to mekong-infra):
 #   Mekong/
 #     mekong-infra/        ← this file lives here
-#     mekong-jobs/         ← MEKONG_JOBS_DIR (default: ../mekong-jobs)
 #     mekong-notebooks/    ← MEKONG_NOTEBOOKS_DIR (default: ../mekong-notebooks)
 #
+# mekong-jobs is baked into the Flink and Spark images at build time.
+# For local dev with hot reload, docker-compose.override.yml re-mounts it.
+#
 # Override in .env if your repos are elsewhere:
-#   MEKONG_JOBS_DIR=/absolute/path/to/mekong-jobs
 #   MEKONG_NOTEBOOKS_DIR=/absolute/path/to/mekong-notebooks
+#   MEKONG_JOBS_DIR=/absolute/path/to/mekong-jobs   ← used by override only
 
 services:
+  # WARNING: single-broker, replication-factor 1 — dev only, no fault tolerance
   kafka:
     image: apache/kafka:4.0.0
     container_name: kafka
+    restart: unless-stopped
     ports:
       - "9092:9092"
     environment:
@@ -38,10 +42,17 @@ services:
       timeout: 10s
       retries: 5
       start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+        reservations:
+          memory: 256m
 
   kafka-ui:
-    image: ghcr.io/kafbat/kafka-ui:latest
+    image: ghcr.io/kafbat/kafka-ui:v1.5.0
     container_name: kafka-ui
+    restart: unless-stopped
     ports:
       - "8080:8080"
     environment:
@@ -51,10 +62,18 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+        reservations:
+          memory: 128m
 
+  # WARNING: single-node, no erasure coding — dev only, no replication
   minio:
     image: minio/minio:RELEASE.2025-09-07T16-13-09Z
     container_name: minio
+    restart: unless-stopped
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -70,18 +89,32 @@ services:
       timeout: 10s
       retries: 5
       start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+        reservations:
+          memory: 256m
 
   flink-jobmanager:
     build:
       context: .
       dockerfile: docker/flink.Dockerfile
     container_name: flink-jobmanager
+    restart: unless-stopped
     command: jobmanager
     ports:
       - "8081:8081"
     environment:
       FLINK_PROPERTIES: |
         jobmanager.rpc.address: flink-jobmanager
+        execution.checkpointing.interval: 60000
+        state.checkpoints.dir: s3a://market-data/flink-checkpoints/
+        fs.s3a.endpoint: http://minio:9000
+        fs.s3a.path.style.access: true
+        fs.s3a.access.key: ${MINIO_ACCESS_KEY:-minioadmin}
+        fs.s3a.secret.key: ${MINIO_SECRET_KEY:-minioadmin}
+      ENABLE_BUILT_IN_PLUGINS: flink-s3-fs-hadoop-2.0.jar
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       PYTHONPATH: /opt/project
       MINIO_ENDPOINT: http://minio:9000
@@ -90,8 +123,6 @@ services:
       MINIO_ANALYSIS_BUCKET: ${MINIO_ANALYSIS_BUCKET:-market-analysis}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
-    volumes:
-      - ${MEKONG_JOBS_DIR:-../mekong-jobs}:/opt/project
     depends_on:
       kafka:
         condition: service_healthy
@@ -101,17 +132,31 @@ services:
       timeout: 10s
       retries: 5
       start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+        reservations:
+          memory: 256m
 
   flink-taskmanager:
     build:
       context: .
       dockerfile: docker/flink.Dockerfile
     container_name: flink-taskmanager
+    restart: unless-stopped
     command: taskmanager
     environment:
       FLINK_PROPERTIES: |
         jobmanager.rpc.address: flink-jobmanager
         taskmanager.numberOfTaskSlots: 8
+        execution.checkpointing.interval: 60000
+        state.checkpoints.dir: s3a://market-data/flink-checkpoints/
+        fs.s3a.endpoint: http://minio:9000
+        fs.s3a.path.style.access: true
+        fs.s3a.access.key: ${MINIO_ACCESS_KEY:-minioadmin}
+        fs.s3a.secret.key: ${MINIO_SECRET_KEY:-minioadmin}
+      ENABLE_BUILT_IN_PLUGINS: flink-s3-fs-hadoop-2.0.jar
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       PYTHONPATH: /opt/project
       MINIO_ENDPOINT: http://minio:9000
@@ -120,17 +165,28 @@ services:
       MINIO_ANALYSIS_BUCKET: ${MINIO_ANALYSIS_BUCKET:-market-analysis}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
-    volumes:
-      - ${MEKONG_JOBS_DIR:-../mekong-jobs}:/opt/project
     depends_on:
       flink-jobmanager:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f TaskManagerRunner > /dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 3g
+        reservations:
+          memory: 512m
 
   spark-master:
     build:
       context: .
       dockerfile: docker/spark.Dockerfile
     container_name: spark-master
+    restart: unless-stopped
     command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.master.Master"]
     environment:
       SPARK_MASTER_HOST: spark-master
@@ -145,7 +201,6 @@ services:
       - "7077:7077"
       - "8082:8080"
     volumes:
-      - ${MEKONG_JOBS_DIR:-../mekong-jobs}:/opt/project
       - spark_logs:/tmp/spark-events
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080"]
@@ -153,12 +208,19 @@ services:
       timeout: 10s
       retries: 5
       start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+        reservations:
+          memory: 256m
 
   spark-worker:
     build:
       context: .
       dockerfile: docker/spark.Dockerfile
     container_name: spark-worker
+    restart: unless-stopped
     command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
     environment:
       SPARK_WORKER_MEMORY: 2g
@@ -169,17 +231,28 @@ services:
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
       MINIO_BUCKET: ${MINIO_BUCKET:-market-data}
       MINIO_ANALYSIS_BUCKET: ${MINIO_ANALYSIS_BUCKET:-market-analysis}
-    volumes:
-      - ${MEKONG_JOBS_DIR:-../mekong-jobs}:/opt/project
     depends_on:
       spark-master:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 3g
+        reservations:
+          memory: 512m
 
   spark-history-server:
     build:
       context: .
       dockerfile: docker/spark.Dockerfile
     container_name: spark-history-server
+    restart: unless-stopped
     command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.history.HistoryServer"]
     environment:
       SPARK_HISTORY_OPTS: >-
@@ -192,12 +265,19 @@ services:
     depends_on:
       spark-master:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+        reservations:
+          memory: 128m
 
   jupyter:
     build:
       context: .
       dockerfile: docker/jupyter.Dockerfile
     container_name: jupyter
+    restart: unless-stopped
     ports:
       - "8888:8888"
     environment:
@@ -208,23 +288,51 @@ services:
       MINIO_BUCKET: ${MINIO_BUCKET:-market-data}
       MINIO_ANALYSIS_BUCKET: ${MINIO_ANALYSIS_BUCKET:-market-analysis}
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      JUPYTER_TOKEN: ${JUPYTER_TOKEN:-}
     volumes:
       - ${MEKONG_NOTEBOOKS_DIR:-../mekong-notebooks}/notebooks:/opt/project/notebooks
       - ${MEKONG_NOTEBOOKS_DIR:-../mekong-notebooks}/model:/opt/project/model
     depends_on:
       minio:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+        reservations:
+          memory: 512m
+
+  # Exposes only /containers and /exec Docker API endpoints to Dagster.
+  # Dagster submits Spark jobs via `docker exec spark-master spark-submit ...`.
+  # Replacing the raw socket mount prevents container escape / host root access.
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:0.3.0
+    container_name: docker-socket-proxy
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      EXEC: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    deploy:
+      resources:
+        limits:
+          memory: 64m
+        reservations:
+          memory: 32m
 
   dagster-webserver:
     build:
       context: .
       dockerfile: docker/dagster.Dockerfile
     container_name: dagster-webserver
+    restart: unless-stopped
     command: dagster-webserver -h 0.0.0.0 -p 3000 -w /opt/dagster/app/workspace.yaml
     ports:
       - "3000:3000"
     environment:
       DAGSTER_HOME: /opt/dagster/dagster_home
+      DOCKER_HOST: tcp://docker-socket-proxy:2375
       MINIO_ENDPOINT: http://minio:9000
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
@@ -234,30 +342,39 @@ services:
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
       DAGSTER_WEBSERVER_URL: ${DAGSTER_WEBSERVER_URL:-http://localhost:3000}
     volumes:
-      - ${MEKONG_JOBS_DIR:-../mekong-jobs}:/opt/project
       - ${MEKONG_DAGSTER_DIR:-../mekong-dagster}:/opt/dagster/app
       - dagster_storage:/opt/dagster/dagster_home/storage
-      - /var/run/docker.sock:/var/run/docker.sock
+      - ./dagster/dagster.yaml:/opt/dagster/dagster_home/dagster.yaml:ro
     depends_on:
       minio:
         condition: service_healthy
       spark-master:
         condition: service_healthy
+      docker-socket-proxy:
+        condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:3000/server_info')"]
       interval: 15s
       timeout: 10s
       retries: 5
       start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+        reservations:
+          memory: 128m
 
   dagster-daemon:
     build:
       context: .
       dockerfile: docker/dagster.Dockerfile
     container_name: dagster-daemon
+    restart: unless-stopped
     command: dagster-daemon run -w /opt/dagster/app/workspace.yaml
     environment:
       DAGSTER_HOME: /opt/dagster/dagster_home
+      DOCKER_HOST: tcp://docker-socket-proxy:2375
       MINIO_ENDPOINT: http://minio:9000
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
@@ -267,17 +384,23 @@ services:
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
       DAGSTER_WEBSERVER_URL: ${DAGSTER_WEBSERVER_URL:-http://localhost:3000}
     volumes:
-      - ${MEKONG_JOBS_DIR:-../mekong-jobs}:/opt/project
       - ${MEKONG_DAGSTER_DIR:-../mekong-dagster}:/opt/dagster/app
       - dagster_storage:/opt/dagster/dagster_home/storage
-      - /var/run/docker.sock:/var/run/docker.sock
+      - ./dagster/dagster.yaml:/opt/dagster/dagster_home/dagster.yaml:ro
     depends_on:
       dagster-webserver:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+        reservations:
+          memory: 128m
 
   loki:
     image: grafana/loki:3.4.2
     container_name: loki
+    restart: unless-stopped
     ports:
       - "3100:3100"
     command: -config.file=/etc/loki/loki-config.yaml
@@ -290,10 +413,17 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+        reservations:
+          memory: 128m
 
   promtail:
     image: grafana/promtail:3.4.2
     container_name: promtail
+    restart: unless-stopped
     command: -config.file=/etc/promtail/promtail-config.yaml
     volumes:
       - ./logging/promtail-config.yaml:/etc/promtail/promtail-config.yaml:ro
@@ -301,10 +431,17 @@ services:
     depends_on:
       loki:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+        reservations:
+          memory: 64m
 
   grafana:
     image: grafana/grafana:11.6.1
     container_name: grafana
+    restart: unless-stopped
     ports:
       - "3001:3000"
     environment:
@@ -317,6 +454,12 @@ services:
     depends_on:
       loki:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+        reservations:
+          memory: 128m
 
 volumes:
   kafka_data:

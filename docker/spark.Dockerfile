@@ -2,9 +2,9 @@ FROM apache/spark:4.1.1
 
 USER root
 
-# Install pip and curl (minimal apache/spark image ships neither)
+# Install pip, curl and git (minimal apache/spark image ships none of these)
 RUN apt-get update -qq && \
-    apt-get install -y --no-install-recommends python3-pip curl && \
+    apt-get install -y --no-install-recommends python3-pip curl git && \
     rm -rf /var/lib/apt/lists/*
 
 # Required to pip-install into the system Python inside a container
@@ -16,7 +16,8 @@ RUN pip3 install --no-cache-dir \
     "minio>=7.2" \
     "python-dotenv==1.2.2" \
     "pandas>=2.2.0" \
-    "numpy>=1.26"
+    "numpy>=1.26" \
+    "vnstock>=3.0"
 
 # Pre-bake S3A and Avro JARs into Spark's classpath — no internet access needed at job runtime
 # hadoop-aws must match Spark 4.1.1's bundled Hadoop (3.4.1); mismatched versions cause
@@ -29,5 +30,10 @@ RUN curl -fL -o /opt/spark/jars/hadoop-aws-3.4.1.jar \
     "https://repo1.maven.org/maven2/org/apache/spark/spark-avro_2.13/4.1.1/spark-avro_2.13-4.1.1.jar"
 
 RUN mkdir -p /tmp/spark-events && chmod 1777 /tmp/spark-events
+
+# Bake mekong-jobs source into the image at /opt/project.
+# In local dev, docker-compose.override.yml mounts the live checkout over this.
+RUN git clone --depth=1 https://github.com/davidhoang2406/mekong-jobs.git /opt/project && \
+    chown -R spark:spark /opt/project
 
 USER spark
