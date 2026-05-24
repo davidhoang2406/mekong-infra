@@ -4,7 +4,8 @@
         flink-up spark-up dagster-up dagster-down jupyter-up \
         dagster-logs dagster-shell \
         logging-up logging-down logging-logs \
-        install uninstall
+        install uninstall \
+        ci
 
 PYTHON       := .venv/bin/python
 PIP          := .venv/bin/pip
@@ -68,7 +69,7 @@ dagster-logs: ## Tail Dagster webserver + daemon logs
 dagster-shell: ## Open a shell in the dagster-webserver container
 	docker exec -it dagster-webserver bash
 
-jupyter-up: ## Start MinIO + Jupyter → http://localhost:8888 (no token)
+jupyter-up: ## Start MinIO + Jupyter → http://localhost:8888 (set JUPYTER_TOKEN=<token> in .env to require a token)
 	$(COMPOSE) up -d minio jupyter
 
 # ── Infrastructure initialisation ─────────────────────────────────────────────
@@ -110,6 +111,11 @@ logging-logs: ## Tail Loki + Promtail logs
 	$(COMPOSE) logs -f loki promtail
 
 # ── Interactive installer ─────────────────────────────────────────────────────
+
+ci: .venv ## Lint Python scripts and validate Docker Compose config (no containers required)
+	$(PIP) install --quiet ruff
+	.venv/bin/ruff check db/
+	$(COMPOSE) config --quiet
 
 install: .venv ## Interactively start selected services and initialise infrastructure
 	@echo "Select services to start:"

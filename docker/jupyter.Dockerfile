@@ -19,12 +19,16 @@ RUN SPARK_JARS=$(python3 -c "import pyspark, os; print(os.path.join(os.path.dirn
     curl -fL -o $SPARK_JARS/spark-avro_2.13-4.1.1.jar \
         "https://repo1.maven.org/maven2/org/apache/spark/spark-avro_2.13/4.1.1/spark-avro_2.13-4.1.1.jar"
 
-RUN mkdir -p /tmp/spark-events && chmod 1777 /tmp/spark-events
+RUN useradd -m -u 1000 jovyan && \
+    mkdir -p /tmp/spark-events && chmod 1777 /tmp/spark-events && \
+    mkdir -p /opt/project && chown jovyan:jovyan /opt/project
 
 WORKDIR /opt/project
 
 ENV PYTHONPATH=/opt/project
 
+USER jovyan
+
 EXPOSE 8888
 
-CMD ["sh", "-c", "jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --ServerApp.token='' --ServerApp.password='' --notebook-dir=/opt/project/notebooks"]
+CMD ["sh", "-c", "jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --ServerApp.token=${JUPYTER_TOKEN:-} --ServerApp.password='' --notebook-dir=/opt/project/notebooks"]
