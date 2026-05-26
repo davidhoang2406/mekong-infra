@@ -7,7 +7,8 @@ RUN pip install --no-cache-dir \
     "minio>=7.2" \
     "python-dotenv>=1.0" \
     "pyarrow>=14.0" \
-    "s3fs>=2024.2"
+    "s3fs>=2024.2" \
+    "kafka-python==2.3.1"
 
 RUN mkdir -p /opt/dagster/dagster_home/storage
 
