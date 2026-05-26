@@ -49,6 +49,32 @@ services:
         reservations:
           memory: 256m
 
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.9.0
+    container_name: schema-registry
+    restart: unless-stopped
+    ports:
+      - "8085:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka:29092
+    depends_on:
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/subjects"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+        reservations:
+          memory: 256m
+
   kafka-ui:
     image: ghcr.io/kafbat/kafka-ui:v1.5.0
     container_name: kafka-ui
@@ -59,8 +85,11 @@ services:
       DYNAMIC_CONFIG_ENABLED: "true"
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
     depends_on:
       kafka:
+        condition: service_healthy
+      schema-registry:
         condition: service_healthy
     deploy:
       resources:
@@ -317,11 +346,14 @@ services:
     command: python main.py stock-price-producer
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
       PYTHONPATH: /opt/project
     volumes:
       - ${MEKONG_KAFKA_DIR:-../mekong-kafka}:/opt/project:ro
     depends_on:
       kafka:
+        condition: service_healthy
+      schema-registry:
         condition: service_healthy
     deploy:
       resources:
@@ -337,11 +369,14 @@ services:
     command: python main.py crypto-price-producer
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
       PYTHONPATH: /opt/project
     volumes:
       - ${MEKONG_KAFKA_DIR:-../mekong-kafka}:/opt/project:ro
     depends_on:
       kafka:
+        condition: service_healthy
+      schema-registry:
         condition: service_healthy
     deploy:
       resources:
@@ -357,6 +392,7 @@ services:
     command: python main.py storage-consumer
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
       PYTHONPATH: /opt/project
       MINIO_ENDPOINT: http://minio:9000
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
@@ -368,6 +404,8 @@ services:
       kafka:
         condition: service_healthy
       minio:
+        condition: service_healthy
+      schema-registry:
         condition: service_healthy
     deploy:
       resources:
