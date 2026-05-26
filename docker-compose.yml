@@ -302,6 +302,80 @@ services:
         reservations:
           memory: 512m
 
+  # ── Kafka pipeline daemons ────────────────────────────────────────────────────
+  # stock-price-producer owns the image build; crypto-price-producer and
+  # storage-consumer reuse the same mekong-kafka:local image.
+  # All three are long-running daemons — Docker Compose restart policy handles
+  # crash recovery; the kafka_pipeline_health_sensor in Dagster monitors lag.
+  stock-price-producer:
+    build:
+      context: .
+      dockerfile: docker/kafka.Dockerfile
+    image: mekong-kafka:local
+    container_name: stock-price-producer
+    restart: unless-stopped
+    command: python main.py stock-price-producer
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      PYTHONPATH: /opt/project
+    volumes:
+      - ${MEKONG_KAFKA_DIR:-../mekong-kafka}:/opt/project:ro
+    depends_on:
+      kafka:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+        reservations:
+          memory: 64m
+
+  crypto-price-producer:
+    image: mekong-kafka:local
+    container_name: crypto-price-producer
+    restart: unless-stopped
+    command: python main.py crypto-price-producer
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      PYTHONPATH: /opt/project
+    volumes:
+      - ${MEKONG_KAFKA_DIR:-../mekong-kafka}:/opt/project:ro
+    depends_on:
+      kafka:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+        reservations:
+          memory: 64m
+
+  storage-consumer:
+    image: mekong-kafka:local
+    container_name: storage-consumer
+    restart: unless-stopped
+    command: python main.py storage-consumer
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      PYTHONPATH: /opt/project
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_BUCKET: ${MINIO_BUCKET:-market-data}
+    volumes:
+      - ${MEKONG_KAFKA_DIR:-../mekong-kafka}:/opt/project:ro
+    depends_on:
+      kafka:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+        reservations:
+          memory: 128m
+
   # Exposes only /containers and /exec Docker API endpoints to Dagster.
   # Dagster submits Spark jobs via `docker exec spark-master spark-submit ...`.
   # Replacing the raw socket mount prevents container escape / host root access.
@@ -312,6 +386,7 @@ services:
     environment:
       CONTAINERS: 1
       EXEC: 1
+      POST: 1   # required for container start/stop via Docker SDK
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     deploy:
@@ -341,6 +416,7 @@ services:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
       DAGSTER_WEBSERVER_URL: ${DAGSTER_WEBSERVER_URL:-http://localhost:3000}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
     volumes:
       - ${MEKONG_DAGSTER_DIR:-../mekong-dagster}:/opt/dagster/app
       - dagster_storage:/opt/dagster/dagster_home/storage
@@ -383,6 +459,7 @@ services:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
       DAGSTER_WEBSERVER_URL: ${DAGSTER_WEBSERVER_URL:-http://localhost:3000}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
     volumes:
       - ${MEKONG_DAGSTER_DIR:-../mekong-dagster}:/opt/dagster/app
       - dagster_storage:/opt/dagster/dagster_home/storage

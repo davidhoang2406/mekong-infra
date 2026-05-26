@@ -1,7 +1,8 @@
 .PHONY: up down prod-up \
-        build build-flink build-spark build-dagster build-jupyter prod-build \
+        build build-flink build-spark build-dagster build-jupyter build-kafka prod-build \
         topics-create minio-init storage-flush \
         flink-up spark-up dagster-up dagster-down jupyter-up \
+        kafka-up kafka-down \
         dagster-logs dagster-shell \
         logging-up logging-down logging-logs \
         install uninstall \
@@ -44,7 +45,10 @@ build-dagster: ## Build Dagster Docker image
 build-jupyter: ## Build Jupyter Docker image (downloads S3A JARs + installs deps)
 	$(COMPOSE) build jupyter
 
-build: build-flink build-spark build-dagster build-jupyter ## Build all images
+build-kafka: ## Build Kafka producer/consumer image (installs mekong-kafka deps from GitHub)
+	$(COMPOSE) build stock-price-producer
+
+build: build-flink build-spark build-dagster build-jupyter build-kafka ## Build all images
 
 prod-build: ## Rebuild Flink + Spark images from scratch (fetches latest mekong-jobs)
 	$(COMPOSE) build --no-cache flink-jobmanager flink-taskmanager spark-master spark-worker spark-history-server
@@ -71,6 +75,12 @@ dagster-shell: ## Open a shell in the dagster-webserver container
 
 jupyter-up: ## Start MinIO + Jupyter → http://localhost:8888 (set JUPYTER_TOKEN=<token> in .env to require a token)
 	$(COMPOSE) up -d minio jupyter
+
+kafka-up: build-kafka ## Build image and start Kafka pipeline daemons (producers + storage consumer)
+	$(COMPOSE) up -d stock-price-producer crypto-price-producer storage-consumer
+
+kafka-down: ## Stop Kafka pipeline daemons (Kafka broker and topics are preserved)
+	$(COMPOSE) stop stock-price-producer crypto-price-producer storage-consumer
 
 # ── Infrastructure initialisation ─────────────────────────────────────────────
 
