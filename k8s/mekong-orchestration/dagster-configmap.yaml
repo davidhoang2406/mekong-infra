@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dagster-config
+  namespace: mekong-orchestration
+  labels:
+    app.kubernetes.io/part-of: mekong
+data:
+  dagster.yaml: |
+    storage:
+      postgres:
+        postgres_url:
+          env: DAGSTER_PG_URL
+
+    telemetry:
+      enabled: false
+
+    run_launcher:
+      module: dagster_k8s
+      class: K8sRunLauncher
+      config:
+        service_account_name: dagster
+        job_namespace: mekong-orchestration
+        image_pull_policy: Always
+        instance_config_map: dagster-config
+        run_k8s_config:
+          container_config:
+            env:
+              - name: DAGSTER_HOME
+                value: /opt/dagster/dagster_home
+              - name: DAGSTER_PG_URL
+                valueFrom:
+                  secretKeyRef:
+                    name: dagster-postgres
+                    key: url
+              - name: MINIO_ENDPOINT
+                value: http://minio.mekong-data.svc.cluster.local:9000
+              - name: MINIO_ACCESS_KEY
+                valueFrom:
+                  secretKeyRef:
+                    name: minio-credentials
+                    key: access-key
+              - name: MINIO_SECRET_KEY
+                valueFrom:
+                  secretKeyRef:
+                    name: minio-credentials
+                    key: secret-key
+              - name: MINIO_BUCKET
+                value: market-data
+              - name: MINIO_ANALYSIS_BUCKET
+                value: market-analysis
+              - name: KAFKA_BOOTSTRAP_SERVERS
+                value: kafka-headless.mekong-data.svc.cluster.local:29092
+              - name: TELEGRAM_BOT_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: telegram-credentials
+                    key: bot-token
+              - name: TELEGRAM_CHAT_ID
+                valueFrom:
+                  secretKeyRef:
+                    name: telegram-credentials
+                    key: chat-id
+              - name: DAGSTER_WEBSERVER_URL
+                value: http://dagster.mekong.local
+
+  workspace.yaml: |
+    load_from:
+      - python_package:
+          package_name: dagster_project
+          working_directory: /opt/dagster/app
