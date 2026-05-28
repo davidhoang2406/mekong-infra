@@ -1,0 +1,6 @@
+spark:
+  jobNamespaces:
+    - mekong-processing
+
+webhook:
+  enable: true
