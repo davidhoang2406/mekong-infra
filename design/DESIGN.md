@@ -1,15 +1,23 @@
-# Design Document — Kafka Streaming Pipeline
+# Design Document — Mekong Market Data Platform
 
-A real-time data pipeline for Vietnamese stock and cryptocurrency market data, built on Apache Kafka, MinIO, Apache Flink, Apache Spark, and (Phase 10) Dagster.
+A real-time + batch data pipeline for Vietnamese stock and cryptocurrency
+market data, built on Apache Kafka, MinIO, Apache Flink, Apache Spark, and
+Dagster. Originally deployed via Docker Compose (Phases 1–13), the platform
+was migrated to Kubernetes in Phase 14 and now runs as a set of namespaced
+workloads with operator-managed Flink and Spark.
 
-This document is the high-level overview. **Each Docker service has its own design doc** in `design/services/`:
+This document is the high-level overview. **Each major component has its own
+design doc** in `design/services/`:
 
 - [KAFKA.md](services/KAFKA.md) — broker + UI, listener topology, topic layout, message schema
-- [MINIO.md](services/MINIO.md) — bucket layout, lifecycle rules, host vs in-Docker endpoints, the Spark reading rule
+- [MINIO.md](services/MINIO.md) — bucket layout, lifecycle rules, S3A path-style access
 - [FLINK.md](services/FLINK.md) — JobManager + TaskManager, the alert job, when to use Flink vs the Python alternative
-- [SPARK.md](services/SPARK.md) — master + worker + history server, SparkFactory, JAR pinning, gotchas
-- [JUPYTER.md](services/JUPYTER.md) — local[*] mode for ad-hoc exploration, when to escalate to the cluster
-- [DAGSTER.md](services/DAGSTER.md) *(Phase 10, implemented)* — asset graph, daily partitions, Spark-as-external-compute, rollout plan
+- [SPARK.md](services/SPARK.md) — driver/executor (now operator-managed), SparkFactory, JAR pinning, MinIO event logs
+- [JUPYTER.md](services/JUPYTER.md) — local[*] mode for ad-hoc exploration
+- [DAGSTER.md](services/DAGSTER.md) — asset graph, daily partitions, sensors, Spark-as-CRD submission
+- [KUBERNETES.md](services/KUBERNETES.md) — namespace strategy, operators, RBAC, secrets, ingress
+- [LOGGING.md](services/LOGGING.md) — Loki + Promtail stack
+- [DATA-PLATFORM.md](services/DATA-PLATFORM.md) — cross-cutting platform concerns
 
 ---
 
@@ -92,6 +100,42 @@ OHLCV is computed by a daily Spark job from already-stored snapshots. Routing it
 Asset-centric orchestration maps onto the existing MinIO directory layout — `price.snapshot → ohlcv.bar → technical.indicators` is already a graph of data assets. Dagster's daily partitions line up 1:1 with the `year=/month=/day=` paths, and backfills are first-class.
 
 Trade-off accepted: smaller community than Airflow. See [services/DAGSTER.md](services/DAGSTER.md) §2 for the full decision and §6 for how Dagster wraps the existing Spark jobs without rewriting them.
+
+### 3.10 Why Kubernetes (Phase 14)?
+
+Docker Compose served the learning phase well but topped out at one host with
+no fault tolerance, no horizontal scaling, no rolling deploys, and `.env`-based
+secret handling. K8s gives:
+
+- **Self-healing pods** + readiness/restart-count alerts via Dagster sensors.
+- **Operator-managed compute**: Flink (`FlinkDeployment` CRD) and Spark
+  (`SparkApplication` CRD) are submitted on-demand — no standing clusters.
+- **Native secret management** replaces `.env` files; one source of truth
+  mirrored across namespaces by `make k8s-secrets`.
+- **K8s Run Launcher**: every Dagster run executes in its own pod with isolated
+  resources, instead of `docker exec` into a long-lived container.
+- **GitOps-ready**: all manifests live in `mekong-infra/k8s/` and are version-
+  controlled alongside the Helm operator values.
+
+The full migration plan (motivation, namespace layout, manifest catalogue,
+phase-by-phase rollout) lives in [services/KUBERNETES.md](services/KUBERNETES.md).
+
+### 3.11 Why Postgres for Dagster (Phase 14)?
+
+SQLite cannot be shared across pods, and K8sRunLauncher relies on a run-storage
+backend visible to every short-lived run pod plus the webserver and daemon.
+Postgres runs as a single-replica StatefulSet in `mekong-orchestration` with
+its own PVC. Connection URL is injected via `DAGSTER_PG_URL` from the
+`dagster-postgres` Secret.
+
+### 3.12 Why Spark Operator over a standing cluster?
+
+The previous Docker Compose `spark-master + spark-worker` pair sat idle between
+runs. The Kubeflow Spark Operator (`sparkoperator.k8s.io/v1beta2`) lets Dagster
+submit a `SparkApplication` CRD per asset materialization. The operator spins
+up driver + executor pods, watches them to terminal state, and cleans them up.
+Event logs are written to `s3a://market-data/spark-events/` and read by the
+Spark History deployment.
 
 ---
 
@@ -178,17 +222,37 @@ All Kafka messages share one JSON envelope (defined in `schemas/message.py`):
 | 11 | ✅ | `DigestJob` — gainers/losers/volume digest | Spark DataFrame rankings |
 | 12 | ✅ | `ScreenerJob` — P/E, D/E, EPS filter | Spark join/filter, config-driven thresholds |
 | 13 | ✅ | `VolatilityBurstJob` — Flink sliding window + ValueState | Flink sliding windows |
+| 14 | ✅ | **Kubernetes migration** — Docker Compose dissolved; Flink/Spark operators; K8sRunLauncher; Postgres-backed Dagster; Loki via Helm; cross-namespace secret mirroring; ingress at `*.mekong.local` | StatefulSets, CRDs, RBAC, ConfigMaps, Helm operators |
+| 15 | ✅ | **Repo split** — `mekong-data-models`, `mekong-kafka`, `mekong-jobs`, `mekong-dagster`, `mekong-notebooks`, `mekong-infra` (this repo) | Multi-repo data platform, semver schema versioning, CI per service |
+| 16 | ✅ | **Platform health sensors** — `kafka_pipeline_health_sensor` (pod phase + readiness + restart count + lag delta + producer high-watermark advancement), `raw_data_expiry_sensor`, `telegram_on_success/failure` | Dagster sensors, Kafka admin client, K8s Python client |
+
+---
+
+## 6.1 Repository layout (post-split)
+
+| Repo | Role |
+|---|---|
+| `mekong-infra` (this) | K8s manifests, Helm values, secrets templates, design docs |
+| `mekong-data-models` | Shared Avro/PyArrow schemas, topic constants, Schema Registry client |
+| `mekong-kafka` | Producers (stock + crypto) and storage consumer Docker images |
+| `mekong-jobs` | Flink stream jobs + Spark batch jobs (image referenced by SparkApplication CRD) |
+| `mekong-dagster` | Asset graph, schedules, sensors; submits Spark via the operator |
+| `mekong-notebooks` | JupyterLab read-only analysis notebooks |
+
+Every repo above runs in CI on push to `main`, builds its image, and pushes
+to `ghcr.io/davidhoang2406/<repo>:latest`. K8s deployments reference these
+tags with `imagePullPolicy: Always`.
 
 ---
 
 ## 7. Out of Scope (Intentional)
 
-- **Schema registry** — plain JSON is sufficient to learn core concepts
-- **Multi-broker Kafka cluster** — single broker is functionally identical from the application's perspective
-- **WebSocket feeds** — CCXT REST polling is simpler and sufficient
-- **Cloud deployment** — everything runs locally via Docker; the architecture maps cleanly to AWS MSK + S3 + EMR
-- **Multi-tenant orchestration / Dagster Cloud** — SQLite-backed Dagster is enough for Phase 10
-- **Slack/email alert delivery** — alerts go to stdout; routing comes later
+- **Multi-broker Kafka cluster** — single broker via StatefulSet; bump replicas later when load justifies it.
+- **WebSocket feeds** — CCXT REST polling is simpler and sufficient.
+- **Cloud deployment** — everything runs on minikube/kind today; the manifests and operators map cleanly to EKS/GKE/AKS.
+- **Multi-tenant Dagster Cloud** — local Postgres-backed Dagster is enough.
+- **External secret stores (Vault / SSM)** — local secret manifests today; replace with External Secrets Operator when going to a managed cluster.
+- **Slack/email alert delivery** — Telegram is the only alert channel for now.
 
 ---
 
@@ -198,3 +262,5 @@ All Kafka messages share one JSON envelope (defined in `schemas/message.py`):
 - Test strategy: [TEST.md](TEST.md)
 - Architecture source: [`images/architecture.excalidraw`](images/architecture.excalidraw)
 - Planning backlog: [SUGGESTION.md](SUGGESTION.md)
+- K8s migration plan: [services/KUBERNETES.md](services/KUBERNETES.md)
+- Cross-repo split rationale: [`../../MIGRATION.md`](../../MIGRATION.md)

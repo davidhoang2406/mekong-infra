@@ -1,7 +1,14 @@
 # Kubernetes Migration Plan
 
-> Status: in-progress — manifests written, on branch `feature/kubernetes-migration`.
-> Last updated: 2026-05-26
+> Status: **complete** — all phases shipped to `main`. This document is kept as
+> the rationale + reference for how the platform is laid out.
+> Last updated: 2026-05-28
+
+The platform now runs entirely on Kubernetes. Docker Compose configuration
+has been removed; every service has a manifest under `k8s/` plus a CI-built
+image at `ghcr.io/davidhoang2406/mekong-<service>`. Spark and Flink are
+operator-managed (Kubeflow Spark Operator, Flink Kubernetes Operator) so
+clusters are spun up on demand per job rather than kept hot.
 
 ---
 
