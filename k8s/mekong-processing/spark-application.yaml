@@ -1,0 +1,94 @@
+# SparkApplication CRD template — Dagster creates one of these per job run.
+# Requires Spark Operator installed (see k8s-operators Makefile target).
+#
+# Dagster submission pattern (mekong-dagster/dagster_project/resources/spark_k8s.py):
+#
+#   from kubernetes import client as k8s_client, config as k8s_config
+#   import copy, yaml
+#
+#   SPARK_APP_TEMPLATE = yaml.safe_load(open("k8s/mekong-processing/spark-application.yaml"))
+#
+#   def submit_spark_job(job_name: str, main_file: str, args: list[str]) -> None:
+#       k8s_config.load_incluster_config()
+#       api = k8s_client.CustomObjectsApi()
+#       app = copy.deepcopy(SPARK_APP_TEMPLATE)
+#       app["metadata"]["name"] = job_name
+#       app["spec"]["mainApplicationFile"] = main_file
+#       app["spec"]["arguments"] = args
+#       api.create_namespaced_custom_object(
+#           group="sparkoperator.k8s.io",
+#           version="v1beta2",
+#           namespace="mekong-processing",
+#           plural="sparkapplications",
+#           body=app,
+#       )
+apiVersion: sparkoperator.k8s.io/v1beta2
+kind: SparkApplication
+metadata:
+  name: mekong-spark-job          # overridden per run by Dagster
+  namespace: mekong-processing
+  labels:
+    app.kubernetes.io/part-of: mekong
+spec:
+  type: Python
+  pythonVersion: "3"
+  mode: cluster
+  image: ghcr.io/davidhoang2406/mekong-spark:latest
+  imagePullPolicy: IfNotPresent
+  mainApplicationFile: local:///opt/project/batch/ohlcv_daily_ingest.py   # overridden per run
+  arguments: []                   # overridden per run
+  sparkVersion: "4.1.1"
+  restartPolicy:
+    type: Never
+  driver:
+    cores: 1
+    memory: "1g"
+    serviceAccount: spark
+    env:
+      - name: MINIO_ENDPOINT
+        value: http://minio.mekong-data.svc.cluster.local:9000
+      - name: MINIO_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: minio-credentials
+            key: access-key
+      - name: MINIO_SECRET_KEY
+        valueFrom:
+          secretKeyRef:
+            name: minio-credentials
+            key: secret-key
+      - name: MINIO_BUCKET
+        value: market-data
+      - name: MINIO_ANALYSIS_BUCKET
+        value: market-analysis
+      - name: PYTHONPATH
+        value: /opt/project
+  executor:
+    cores: 2
+    instances: 2
+    memory: "3g"
+    env:
+      - name: MINIO_ENDPOINT
+        value: http://minio.mekong-data.svc.cluster.local:9000
+      - name: MINIO_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: minio-credentials
+            key: access-key
+      - name: MINIO_SECRET_KEY
+        valueFrom:
+          secretKeyRef:
+            name: minio-credentials
+            key: secret-key
+      - name: MINIO_BUCKET
+        value: market-data
+      - name: MINIO_ANALYSIS_BUCKET
+        value: market-analysis
+      - name: PYTHONPATH
+        value: /opt/project
+  sparkConf:
+    spark.hadoop.fs.s3a.endpoint: http://minio.mekong-data.svc.cluster.local:9000
+    spark.hadoop.fs.s3a.path.style.access: "true"
+    spark.hadoop.fs.s3a.impl: org.apache.hadoop.fs.s3a.S3AFileSystem
+    spark.eventLog.enabled: "true"
+    spark.eventLog.dir: s3a://market-data/spark-events

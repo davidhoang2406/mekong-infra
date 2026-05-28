@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: storage-consumer
+  namespace: mekong-pipeline
+  labels:
+    app: storage-consumer
+    app.kubernetes.io/part-of: mekong
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: storage-consumer
+  template:
+    metadata:
+      labels:
+        app: storage-consumer
+        app.kubernetes.io/part-of: mekong
+    spec:
+      containers:
+        - name: consumer
+          image: ghcr.io/davidhoang2406/mekong-kafka:latest
+          imagePullPolicy: Always
+          command: ["python", "main.py", "storage-consumer"]
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: kafka-headless.mekong-data.svc.cluster.local:29092
+            - name: SCHEMA_REGISTRY_URL
+              value: http://schema-registry.mekong-data.svc.cluster.local:8081
+            - name: MINIO_ENDPOINT
+              value: http://minio.mekong-data.svc.cluster.local:9000
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: access-key
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: secret-key
+            - name: MINIO_BUCKET
+              value: market-data
+            - name: PYTHONPATH
+              value: /opt/project
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            exec:
+              command: ["python", "-c", "import sys; sys.exit(0)"]
+            initialDelaySeconds: 30
+            periodSeconds: 30

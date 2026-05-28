@@ -1,6 +1,0 @@
-storage:
-  sqlite:
-    base_dir: /opt/dagster/dagster_home/storage
-
-telemetry:
-  enabled: false

@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: dagster-postgres
+  namespace: mekong-orchestration
+  labels:
+    app: dagster-postgres
+    app.kubernetes.io/part-of: mekong
+spec:
+  serviceName: dagster-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dagster-postgres
+  template:
+    metadata:
+      labels:
+        app: dagster-postgres
+        app.kubernetes.io/part-of: mekong
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: dagster
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: dagster-postgres
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dagster-postgres
+                  key: password
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/postgresql/data
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "dagster", "-d", "dagster"]
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "dagster", "-d", "dagster"]
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 5
+  volumeClaimTemplates:
+    - metadata:
+        name: pgdata
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dagster-postgres
+  namespace: mekong-orchestration
+  labels:
+    app: dagster-postgres
+    app.kubernetes.io/part-of: mekong
+spec:
+  selector:
+    app: dagster-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432

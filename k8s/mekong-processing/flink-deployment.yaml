@@ -1,0 +1,107 @@
+# Requires the Flink Kubernetes Operator installed first:
+#   helm repo add flink-operator-repo https://archive.apache.org/dist/flink/flink-kubernetes-operator-1.10.0/
+#   helm install flink-kubernetes-operator flink-operator-repo/flink-kubernetes-operator \
+#     --namespace mekong-processing --create-namespace
+apiVersion: flink.apache.org/v1beta1
+kind: FlinkDeployment
+metadata:
+  name: mekong-flink
+  namespace: mekong-processing
+  labels:
+    app.kubernetes.io/part-of: mekong
+spec:
+  image: ghcr.io/davidhoang2406/mekong-flink:latest
+  flinkVersion: "v1_20"
+  flinkConfiguration:
+    execution.checkpointing.interval: "60000"
+    state.checkpoints.dir: s3a://market-data/flink-checkpoints/
+    state.savepoints.dir: s3a://market-data/flink-savepoints/
+    fs.s3a.endpoint: http://minio.mekong-data.svc.cluster.local:9000
+    fs.s3a.path.style.access: "true"
+    # S3A credentials via EnvironmentVariableCredentialsProvider — reads
+    # AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY from the pod env.
+    fs.s3a.aws.credentials.provider: com.amazonaws.auth.EnvironmentVariableCredentialsProvider
+    taskmanager.numberOfTaskSlots: "4"
+  serviceAccount: flink
+  podTemplate:
+    spec:
+      initContainers:
+        - name: copy-conf
+          image: busybox:latest
+          command: ["sh", "-c", "cp -rL /src/* /dst/ 2>/dev/null; true"]
+          volumeMounts:
+            - name: flink-config-volume
+              mountPath: /src
+            - name: flink-conf-rw
+              mountPath: /dst
+      volumes:
+        - name: flink-conf-rw
+          emptyDir: {}
+      containers:
+        - name: flink-main-container
+          volumeMounts:
+            - name: flink-conf-rw
+              mountPath: /flink-conf-rw
+          env:
+            - name: FLINK_CONF_DIR
+              value: /flink-conf-rw
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: kafka-headless.mekong-data.svc.cluster.local:29092
+            - name: MINIO_ENDPOINT
+              value: http://minio.mekong-data.svc.cluster.local:9000
+            # AWS_* names are required by EnvironmentVariableCredentialsProvider
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: access-key
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: secret-key
+            # Keep MINIO_* names for application-layer code that reads them directly
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: access-key
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: secret-key
+            - name: MINIO_ANALYSIS_BUCKET
+              value: market-analysis
+            - name: TELEGRAM_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: telegram-credentials
+                  key: bot-token
+                  optional: true
+            - name: TELEGRAM_CHAT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: telegram-credentials
+                  key: chat-id
+                  optional: true
+            - name: PYTHONPATH
+              value: /opt/project
+            - name: ENABLE_BUILT_IN_PLUGINS
+              value: flink-s3-fs-hadoop-1.20.4.jar
+  jobManager:
+    resource:
+      memory: "1024m"
+      cpu: 0.5
+  taskManager:
+    replicas: 2
+    resource:
+      memory: "3072m"
+      cpu: 1
+  job:
+    jarURI: local:///opt/flink/opt/flink-python-1.20.4.jar
+    args:
+      - "-py"
+      - "/opt/project/jobs/stream/price_alert_job.py"
+    parallelism: 4
+    upgradeMode: savepoint

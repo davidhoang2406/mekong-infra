@@ -1,197 +1,150 @@
-.PHONY: up down prod-up \
-        build build-flink build-spark build-dagster build-jupyter build-kafka prod-build \
-        topics-create minio-init storage-flush \
-        flink-up spark-up dagster-up dagster-down jupyter-up \
-        kafka-up kafka-down \
-        dagster-logs dagster-shell \
-        logging-up logging-down logging-logs \
-        install uninstall \
-        ci
+.PHONY: k8s-namespaces k8s-secrets k8s-rbac k8s-operators \
+        k8s-data-up k8s-processing-up k8s-pipeline-up k8s-dagster-up k8s-logging-up k8s-dev-up \
+        k8s-up k8s-down k8s-status \
+        k8s-topics-create k8s-minio-init
 
-PYTHON       := .venv/bin/python
-PIP          := .venv/bin/pip
-COMPOSE      := docker compose
-COMPOSE_PROD := docker compose -f docker-compose.yml
+KUBECTL := kubectl
+HELM    := helm
 
-# ── Venv setup ────────────────────────────────────────────────────────────────
+# ── Operators (run once) ──────────────────────────────────────────────────────
 
-.venv:
-	python3.12 -m venv .venv
-	$(PIP) install --upgrade pip
-	$(PIP) install -r requirements.txt
+k8s-operators: ## Install Flink and Spark K8s operators via Helm (run once)
+	$(HELM) repo add flink-operator-repo https://archive.apache.org/dist/flink/flink-kubernetes-operator-1.10.0/
+	$(HELM) repo add spark-operator https://kubeflow.github.io/spark-operator
+	$(HELM) repo update
+	$(HELM) upgrade --install flink-kubernetes-operator flink-operator-repo/flink-kubernetes-operator \
+		--namespace mekong-processing --create-namespace
+	$(HELM) upgrade --install spark-operator spark-operator/spark-operator \
+		--namespace mekong-processing \
+		--set webhook.enable=true \
+		--set sparkJobNamespace=mekong-processing
+
+# ── Bootstrap ─────────────────────────────────────────────────────────────────
+
+k8s-namespaces: ## Create all mekong namespaces
+	$(KUBECTL) apply -f k8s/mekong-data/namespace.yaml
+	$(KUBECTL) apply -f k8s/mekong-processing/namespace.yaml
+	$(KUBECTL) apply -f k8s/mekong-pipeline/namespace.yaml
+	$(KUBECTL) apply -f k8s/mekong-orchestration/namespace.yaml
+	$(KUBECTL) apply -f k8s/mekong-observability/namespace.yaml
+	$(KUBECTL) apply -f k8s/mekong-dev/namespace.yaml
+
+k8s-secrets: ## Apply secrets (fill in k8s/secrets/ values first — files are gitignored)
+	@for f in k8s/secrets/minio-credentials.yaml k8s/secrets/dagster-postgres.yaml k8s/secrets/telegram-credentials.yaml; do \
+		if grep -q '<base64-' $$f 2>/dev/null; then \
+			echo "ERROR: $$f still has placeholder values — fill them in before applying."; exit 1; \
+		fi; \
+		$(KUBECTL) apply -f $$f; \
+	done
+	@if [ -f k8s/secrets/jupyter-credentials.yaml ] && ! grep -q '<base64-' k8s/secrets/jupyter-credentials.yaml; then \
+		$(KUBECTL) apply -f k8s/secrets/jupyter-credentials.yaml; \
+	fi
+	@echo "Mirroring minio-credentials to all namespaces..."
+	@MINIO_ACCESS=$$($(KUBECTL) get secret minio-credentials -n mekong-data -o jsonpath='{.data.access-key}' | base64 -d); \
+	MINIO_SECRET=$$($(KUBECTL) get secret minio-credentials -n mekong-data -o jsonpath='{.data.secret-key}' | base64 -d); \
+	for ns in mekong-pipeline mekong-processing mekong-orchestration mekong-dev; do \
+		$(KUBECTL) create secret generic minio-credentials -n $$ns \
+			--from-literal=access-key="$$MINIO_ACCESS" \
+			--from-literal=secret-key="$$MINIO_SECRET" \
+			--dry-run=client -o yaml | $(KUBECTL) apply -f - || exit 1; \
+	done
+	@echo "Mirroring telegram-credentials to processing and orchestration..."
+	@TG_TOKEN=$$($(KUBECTL) get secret telegram-credentials -n mekong-data -o jsonpath='{.data.bot-token}' | base64 -d); \
+	TG_CHAT=$$($(KUBECTL) get secret telegram-credentials -n mekong-data -o jsonpath='{.data.chat-id}' | base64 -d); \
+	for ns in mekong-processing mekong-orchestration; do \
+		$(KUBECTL) create secret generic telegram-credentials -n $$ns \
+			--from-literal=bot-token="$$TG_TOKEN" \
+			--from-literal=chat-id="$$TG_CHAT" \
+			--dry-run=client -o yaml | $(KUBECTL) apply -f - || exit 1; \
+	done
+
+k8s-rbac: ## Apply RBAC roles and bindings
+	$(KUBECTL) apply -f k8s/rbac/
+
+# ── Service groups ────────────────────────────────────────────────────────────
+
+k8s-data-up: ## Deploy Kafka + MinIO + Schema Registry + Kafka UI
+	$(KUBECTL) apply -f k8s/mekong-data/namespace.yaml
+	$(KUBECTL) apply -f k8s/mekong-data/kafka-services.yaml
+	$(KUBECTL) apply -f k8s/mekong-data/kafka-statefulset.yaml
+	$(KUBECTL) apply -f k8s/mekong-data/minio-services.yaml
+	$(KUBECTL) apply -f k8s/mekong-data/minio-statefulset.yaml
+	$(KUBECTL) apply -f k8s/mekong-data/schema-registry-deployment.yaml
+	$(KUBECTL) apply -f k8s/mekong-data/kafka-ui-deployment.yaml
+	$(KUBECTL) apply -f k8s/ingress.yaml
+
+k8s-topics-create: ## Create Kafka topics via K8s Job (run after k8s-data-up)
+	$(KUBECTL) apply -f k8s/mekong-data/kafka-topics-job.yaml
+
+k8s-minio-init: ## Create MinIO buckets and lifecycle rules via K8s Job
+	$(KUBECTL) apply -f k8s/mekong-data/minio-init-job.yaml
+
+k8s-processing-up: ## Deploy Flink + Spark History (requires k8s-operators first)
+	$(KUBECTL) apply -f k8s/mekong-processing/namespace.yaml
+	$(KUBECTL) apply -f k8s/mekong-processing/flink-deployment.yaml
+	$(KUBECTL) apply -f k8s/mekong-processing/spark-history-deployment.yaml
+
+k8s-pipeline-up: ## Deploy producers + storage consumer
+	$(KUBECTL) apply -f k8s/mekong-pipeline/namespace.yaml
+	$(KUBECTL) apply -f k8s/mekong-pipeline/stock-price-producer-deployment.yaml
+	$(KUBECTL) apply -f k8s/mekong-pipeline/crypto-price-producer-deployment.yaml
+	$(KUBECTL) apply -f k8s/mekong-pipeline/storage-consumer-deployment.yaml
+
+k8s-dagster-up: ## Deploy PostgreSQL + Dagster webserver + daemon
+	$(KUBECTL) apply -f k8s/mekong-orchestration/namespace.yaml
+	$(KUBECTL) apply -f k8s/mekong-orchestration/postgres-statefulset.yaml
+	$(KUBECTL) apply -f k8s/mekong-orchestration/dagster-configmap.yaml
+	$(KUBECTL) apply -f k8s/mekong-orchestration/dagster-webserver-deployment.yaml
+	$(KUBECTL) apply -f k8s/mekong-orchestration/dagster-daemon-deployment.yaml
+
+k8s-logging-up: ## Deploy Loki + Promtail + Grafana via Helm
+	$(HELM) repo add grafana https://grafana.github.io/helm-charts
+	$(HELM) repo update
+	$(HELM) upgrade --install loki grafana/loki-stack \
+		-n mekong-observability \
+		--create-namespace \
+		-f k8s/mekong-observability/values-loki-stack.yaml
+
+k8s-dev-up: ## Deploy JupyterLab
+	$(KUBECTL) apply -f k8s/mekong-dev/namespace.yaml
+	$(KUBECTL) apply -f k8s/mekong-dev/jupyter-deployment.yaml
 
 # ── Full stack ────────────────────────────────────────────────────────────────
 
-up: ## Start all services — dev mode (override mounts live mekong-jobs)
-	$(COMPOSE) up -d
+k8s-up: k8s-namespaces k8s-secrets k8s-rbac k8s-data-up k8s-processing-up k8s-pipeline-up k8s-dagster-up k8s-logging-up k8s-dev-up ## Bring up full K8s stack
+	@echo ""
+	@echo "Stack deployed. Run these next:"
+	@echo "  make k8s-topics-create    — create Kafka topics"
+	@echo "  make k8s-minio-init       — create MinIO buckets"
+	@echo ""
+	@echo "If first-time install, ensure operators were installed first:"
+	@echo "  make k8s-operators"
 
-prod-up: ## Start all services — production mode (baked mekong-jobs, no live mount)
-	$(COMPOSE_PROD) up -d
+k8s-status: ## Show pod status across all mekong namespaces
+	@echo "=== mekong-data ==="
+	$(KUBECTL) get pods -n mekong-data
+	@echo ""
+	@echo "=== mekong-processing ==="
+	$(KUBECTL) get pods -n mekong-processing
+	@echo ""
+	@echo "=== mekong-pipeline ==="
+	$(KUBECTL) get pods -n mekong-pipeline
+	@echo ""
+	@echo "=== mekong-orchestration ==="
+	$(KUBECTL) get pods -n mekong-orchestration
+	@echo ""
+	@echo "=== mekong-observability ==="
+	$(KUBECTL) get pods -n mekong-observability
+	@echo ""
+	@echo "=== mekong-dev ==="
+	$(KUBECTL) get pods -n mekong-dev
 
-down: ## Stop all services (volumes are preserved)
-	$(COMPOSE) down
-
-# ── Image builds ──────────────────────────────────────────────────────────────
-
-build-flink: ## Build Flink image (bakes mekong-jobs from GitHub)
-	$(COMPOSE) build flink-jobmanager flink-taskmanager
-
-build-spark: ## Build Spark image (bakes mekong-jobs from GitHub)
-	$(COMPOSE) build spark-master spark-worker spark-history-server
-
-build-dagster: ## Build Dagster Docker image
-	$(COMPOSE) build dagster-webserver dagster-daemon
-
-build-jupyter: ## Build Jupyter Docker image (downloads S3A JARs + installs deps)
-	$(COMPOSE) build jupyter
-
-build-kafka: ## Build Kafka producer/consumer image (installs mekong-kafka deps from GitHub)
-	$(COMPOSE) build stock-price-producer
-
-build: build-flink build-spark build-dagster build-jupyter build-kafka ## Build all images
-
-prod-build: ## Rebuild Flink + Spark images from scratch (fetches latest mekong-jobs)
-	$(COMPOSE) build --no-cache flink-jobmanager flink-taskmanager spark-master spark-worker spark-history-server
-
-# ── Per-service start ─────────────────────────────────────────────────────────
-
-flink-up: ## Start Kafka + Flink cluster
-	$(COMPOSE) up -d kafka kafka-ui flink-jobmanager flink-taskmanager
-
-spark-up: ## Start MinIO + Spark cluster
-	$(COMPOSE) up -d minio spark-master spark-worker spark-history-server
-
-dagster-up: ## Start MinIO + Spark + Dagster (webserver + daemon) → http://localhost:3000
-	$(COMPOSE) up -d minio spark-master spark-worker dagster-webserver dagster-daemon
-
-dagster-down: ## Stop Dagster webserver + daemon
-	$(COMPOSE) stop dagster-webserver dagster-daemon
-
-dagster-logs: ## Tail Dagster webserver + daemon logs
-	$(COMPOSE) logs -f dagster-webserver dagster-daemon
-
-dagster-shell: ## Open a shell in the dagster-webserver container
-	docker exec -it dagster-webserver bash
-
-jupyter-up: ## Start MinIO + Jupyter → http://localhost:8888 (set JUPYTER_TOKEN=<token> in .env to require a token)
-	$(COMPOSE) up -d minio jupyter
-
-kafka-up: build-kafka ## Build image and start Kafka pipeline daemons (producers + storage consumer)
-	$(COMPOSE) up -d stock-price-producer crypto-price-producer storage-consumer
-
-kafka-down: ## Stop Kafka pipeline daemons (Kafka broker and topics are preserved)
-	$(COMPOSE) stop stock-price-producer crypto-price-producer storage-consumer
-
-# ── Infrastructure initialisation ─────────────────────────────────────────────
-
-# NOTE: replication-factor 1 — dev only; match to broker count before using in production
-topics-create: ## Create Kafka topics (safe to re-run — uses --if-not-exists)
-	docker exec kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
-		--create --if-not-exists --topic stock.price.realtime  --partitions 6 --replication-factor 1
-	docker exec kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
-		--create --if-not-exists --topic crypto.price.realtime --partitions 6 --replication-factor 1
-
-minio-init: .venv ## Create MinIO buckets and apply lifecycle rules (safe to re-run)
-	$(PYTHON) db/init_minio.py
-
-storage-flush: ## Selectively delete objects from MinIO buckets (irreversible)
-	@echo "WARNING: this permanently deletes all data from selected buckets."
-	@read -p "  Delete market-data (raw price snapshots)? [y/n] " md; \
-	read -p "  Delete market-analysis (OHLCV bars)? [y/n] " ma; \
-	if [ "$$md" != "y" ] && [ "$$ma" != "y" ]; then \
-		echo "Nothing selected — aborted."; \
-	else \
-		if [ "$$md" = "y" ]; then \
-			$(PYTHON) db/flush_minio.py market-data; \
-		fi; \
-		if [ "$$ma" = "y" ]; then \
-			$(PYTHON) db/flush_minio.py market-analysis; \
-		fi; \
-		echo "Flush complete."; \
-	fi
-
-# ── Logging stack ─────────────────────────────────────────────────────────────
-
-logging-up: ## Start Loki + Promtail + Grafana → http://localhost:3001
-	$(COMPOSE) up -d loki promtail grafana
-
-logging-down: ## Stop logging stack
-	$(COMPOSE) stop loki promtail grafana
-
-logging-logs: ## Tail Loki + Promtail logs
-	$(COMPOSE) logs -f loki promtail
-
-# ── Interactive installer ─────────────────────────────────────────────────────
-
-ci: .venv ## Lint Python scripts and validate Docker Compose config (no containers required)
-	$(PIP) install --quiet ruff
-	.venv/bin/ruff check db/
-	$(COMPOSE) config --quiet
-
-install: .venv ## Interactively start selected services and initialise infrastructure
-	@echo "Select services to start:"
-	@read -p "  Kafka + Kafka UI? [y/n] " k; \
-	read -p "  MinIO (object storage)? [y/n] " m; \
-	read -p "  Flink (JobManager + TaskManager)? [y/n] " fl; \
-	read -p "  Spark (Master + Worker + History Server)? [y/n] " sp; \
-	read -p "  Jupyter (JupyterLab at :8888)? [y/n] " jup; \
-	read -p "  Dagster (webserver + daemon at :3000)? [y/n] " dag; \
-	read -p "  Logging stack (Loki + Promtail + Grafana at :3001)? [y/n] " log; \
-	if [ "$$k" != "y" ] && [ "$$m" != "y" ] && [ "$$fl" != "y" ] && [ "$$sp" != "y" ] && [ "$$jup" != "y" ] && [ "$$dag" != "y" ] && [ "$$log" != "y" ]; then \
-		echo "Nothing selected — aborted."; \
-	else \
-		services=""; \
-		if [ "$$k" = "y" ]; then services="$$services kafka kafka-ui"; fi; \
-		if [ "$$m" = "y" ]; then services="$$services minio"; fi; \
-		if [ "$$fl" = "y" ]; then services="$$services flink-jobmanager flink-taskmanager"; fi; \
-		if [ "$$sp" = "y" ]; then services="$$services spark-master spark-worker spark-history-server"; fi; \
-		if [ "$$jup" = "y" ]; then services="$$services jupyter"; fi; \
-		if [ "$$dag" = "y" ]; then services="$$services dagster-webserver dagster-daemon"; fi; \
-		if [ "$$log" = "y" ]; then services="$$services loki promtail grafana"; fi; \
-		if [ "$$fl" = "y" ]; then \
-			echo "Building PyFlink Docker image..."; \
-			$(COMPOSE) build flink-jobmanager flink-taskmanager; \
-		fi; \
-		if [ "$$sp" = "y" ]; then \
-			echo "Building Spark Docker image (downloads S3A JARs — takes a moment)..."; \
-			$(COMPOSE) build spark-master spark-worker spark-history-server; \
-		fi; \
-		if [ "$$jup" = "y" ]; then \
-			echo "Building Jupyter Docker image (downloads JARs + installs deps — takes a moment)..."; \
-			$(COMPOSE) build jupyter; \
-		fi; \
-		if [ "$$dag" = "y" ]; then \
-			echo "Building Dagster Docker image..."; \
-			$(COMPOSE) build dagster-webserver dagster-daemon; \
-		fi; \
-		echo "Starting:$$services"; \
-		$(COMPOSE) up -d $$services; \
-		if [ "$$m" = "y" ]; then \
-			echo "Waiting for MinIO..."; \
-			until curl -sf http://localhost:9000/minio/health/live 2>/dev/null; do \
-				printf '.'; sleep 2; \
-			done; \
-			echo ""; \
-			$(MAKE) minio-init; \
-		fi; \
-		if [ "$$k" = "y" ]; then \
-			echo "Waiting for Kafka..."; \
-			until docker exec kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list 2>/dev/null; do \
-				printf '.'; sleep 2; \
-			done; \
-			echo ""; \
-			$(MAKE) topics-create; \
-		fi; \
-		echo "Setup complete."; \
-	fi
-
-uninstall: ## Stop all services and remove named volumes (irreversible — destroys all persisted data)
-	@echo "WARNING: this permanently removes all containers and named volumes"
-	@echo "         (Kafka data, MinIO objects, Loki logs, Grafana dashboards, etc.)."
-	@read -p "  Remove everything? [y/n] " confirm; \
-	if [ "$$confirm" = "y" ]; then \
-		$(COMPOSE) down -v; \
-		echo "All services and volumes removed."; \
-	else \
-		echo "Aborted."; \
-	fi
+k8s-down: ## Delete all mekong K8s resources (PVCs preserved — data survives)
+	$(KUBECTL) delete -f k8s/mekong-pipeline/ --ignore-not-found
+	$(KUBECTL) delete -f k8s/mekong-dev/ --ignore-not-found
+	$(KUBECTL) delete -f k8s/mekong-orchestration/ --ignore-not-found
+	$(KUBECTL) delete -f k8s/mekong-processing/ --ignore-not-found
+	$(KUBECTL) delete -f k8s/mekong-data/ --ignore-not-found
+	$(KUBECTL) delete -f k8s/rbac/ --ignore-not-found
+	$(KUBECTL) delete -f k8s/ingress.yaml --ignore-not-found
+	$(HELM) uninstall loki -n mekong-observability --ignore-not-found

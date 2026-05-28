@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-ui
+  namespace: mekong-data
+  labels:
+    app: kafka-ui
+    app.kubernetes.io/part-of: mekong
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-ui
+  template:
+    metadata:
+      labels:
+        app: kafka-ui
+        app.kubernetes.io/part-of: mekong
+    spec:
+      containers:
+        - name: kafka-ui
+          image: ghcr.io/kafbat/kafka-ui:v1.5.0
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DYNAMIC_CONFIG_ENABLED
+              value: "true"
+            - name: KAFKA_CLUSTERS_0_NAME
+              value: mekong
+            - name: KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS
+              value: kafka-headless.mekong-data.svc.cluster.local:29092
+            - name: KAFKA_CLUSTERS_0_SCHEMAREGISTRY
+              value: http://schema-registry.mekong-data.svc.cluster.local:8081
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-ui
+  namespace: mekong-data
+  labels:
+    app: kafka-ui
+    app.kubernetes.io/part-of: mekong
+spec:
+  selector:
+    app: kafka-ui
+  ports:
+    - port: 8080
+      targetPort: 8080

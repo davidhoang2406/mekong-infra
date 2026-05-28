@@ -1,6 +1,6 @@
 # Kubernetes Migration Plan
 
-> Status: planning — nothing below should be implemented until a phase is selected and scoped.
+> Status: in-progress — manifests written, on branch `feature/kubernetes-migration`.
 > Last updated: 2026-05-26
 
 ---
@@ -196,7 +196,7 @@ metadata:
   namespace: mekong-processing
 spec:
   image: mekong-flink:latest     # from docker/flink.Dockerfile
-  flinkVersion: "v2_0"
+  flinkVersion: "v1_20"
   flinkConfiguration:
     execution.checkpointing.interval: "60000"
     state.checkpoints.dir: s3a://market-data/flink-checkpoints/
@@ -678,53 +678,48 @@ mekong-infra/
 │   ├── mekong-data/
 │   │   ├── namespace.yaml
 │   │   ├── kafka-statefulset.yaml
-│   │   ├── kafka-headless-service.yaml
-│   │   ├── kafka-service.yaml
+│   │   ├── kafka-services.yaml            # headless + ClusterIP in one file
 │   │   ├── kafka-topics-job.yaml
-│   │   ├── schema-registry-deployment.yaml
-│   │   ├── schema-registry-service.yaml
-│   │   ├── kafka-ui-deployment.yaml
-│   │   ├── kafka-ui-service.yaml
+│   │   ├── schema-registry-deployment.yaml  # Deployment + Service
+│   │   ├── kafka-ui-deployment.yaml         # Deployment + Service
 │   │   ├── minio-statefulset.yaml
-│   │   ├── minio-headless-service.yaml
-│   │   ├── minio-service.yaml
+│   │   ├── minio-services.yaml            # headless + ClusterIP in one file
 │   │   └── minio-init-job.yaml
 │   ├── mekong-processing/
 │   │   ├── namespace.yaml
 │   │   ├── flink-deployment.yaml          # FlinkDeployment CRD
-│   │   ├── spark-history-deployment.yaml
-│   │   └── spark-history-service.yaml
+│   │   ├── spark-history-deployment.yaml  # Deployment + Service
+│   │   ├── spark-application.yaml         # SparkApplication CRD template
+│   │   └── processing-secrets.yaml        # cross-namespace mirrors (minio, telegram)
 │   ├── mekong-pipeline/
 │   │   ├── namespace.yaml
 │   │   ├── stock-price-producer-deployment.yaml
 │   │   ├── crypto-price-producer-deployment.yaml
-│   │   └── storage-consumer-deployment.yaml
+│   │   ├── storage-consumer-deployment.yaml
+│   │   └── pipeline-secrets.yaml          # cross-namespace mirrors (minio, telegram)
 │   ├── mekong-orchestration/
 │   │   ├── namespace.yaml
-│   │   ├── postgres-statefulset.yaml
-│   │   ├── postgres-service.yaml
-│   │   ├── dagster-webserver-deployment.yaml
-│   │   ├── dagster-webserver-service.yaml
+│   │   ├── postgres-statefulset.yaml      # StatefulSet + Service
+│   │   ├── dagster-webserver-deployment.yaml  # Deployment + Service
 │   │   ├── dagster-daemon-deployment.yaml
-│   │   └── dagster-configmap.yaml         # dagster.yaml + workspace.yaml
+│   │   ├── dagster-configmap.yaml         # dagster.yaml + workspace.yaml
+│   │   └── orchestration-secrets.yaml     # cross-namespace mirrors (minio, telegram)
 │   ├── mekong-observability/
 │   │   ├── namespace.yaml
 │   │   └── values-loki-stack.yaml         # Helm values override
 │   ├── mekong-dev/
 │   │   ├── namespace.yaml
-│   │   ├── jupyter-deployment.yaml
-│   │   └── jupyter-service.yaml
+│   │   ├── jupyter-deployment.yaml        # PVC + Deployment + Service
+│   │   └── dev-secrets.yaml               # cross-namespace mirrors (minio)
 │   ├── rbac/
-│   │   ├── dagster-role.yaml
-│   │   ├── dagster-rolebinding.yaml
-│   │   ├── spark-role.yaml
-│   │   ├── spark-rolebinding.yaml
-│   │   ├── flink-role.yaml
-│   │   └── flink-rolebinding.yaml
+│   │   ├── dagster-rbac.yaml              # ServiceAccount + Role + RoleBinding
+│   │   ├── spark-rbac.yaml                # ServiceAccount + Role + RoleBinding
+│   │   └── flink-rbac.yaml                # ServiceAccount + Role + RoleBinding
 │   ├── secrets/                           # gitignored — never committed
 │   │   ├── minio-credentials.yaml
 │   │   ├── dagster-postgres.yaml
-│   │   └── telegram-credentials.yaml
+│   │   ├── telegram-credentials.yaml
+│   │   └── jupyter-credentials.yaml       # optional — empty token = no auth
 │   └── ingress.yaml
 ├── docker/                                # Dockerfiles remain — images are the same
 │   ├── flink.Dockerfile

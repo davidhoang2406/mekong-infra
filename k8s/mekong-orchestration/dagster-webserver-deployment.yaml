@@ -1,0 +1,123 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dagster-webserver
+  namespace: mekong-orchestration
+  labels:
+    app: dagster-webserver
+    app.kubernetes.io/part-of: mekong
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dagster-webserver
+  template:
+    metadata:
+      labels:
+        app: dagster-webserver
+        app.kubernetes.io/part-of: mekong
+    spec:
+      serviceAccountName: dagster
+      containers:
+        - name: webserver
+          image: ghcr.io/davidhoang2406/mekong-dagster:latest
+          imagePullPolicy: Always
+          command:
+            - dagster-webserver
+            - -h
+            - "0.0.0.0"
+            - -p
+            - "3000"
+            - -w
+            - /opt/dagster/dagster_home/workspace.yaml
+          ports:
+            - containerPort: 3000
+          env:
+            - name: DAGSTER_HOME
+              value: /opt/dagster/dagster_home
+            - name: DAGSTER_PG_URL
+              valueFrom:
+                secretKeyRef:
+                  name: dagster-postgres
+                  key: url
+            - name: MINIO_ENDPOINT
+              value: http://minio.mekong-data.svc.cluster.local:9000
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: access-key
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: secret-key
+            - name: MINIO_BUCKET
+              value: market-data
+            - name: MINIO_ANALYSIS_BUCKET
+              value: market-analysis
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: kafka-headless.mekong-data.svc.cluster.local:29092
+            - name: TELEGRAM_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: telegram-credentials
+                  key: bot-token
+                  optional: true
+            - name: TELEGRAM_CHAT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: telegram-credentials
+                  key: chat-id
+                  optional: true
+            - name: DAGSTER_WEBSERVER_URL
+              value: http://dagster.mekong.local
+          volumeMounts:
+            - name: dagster-config
+              mountPath: /opt/dagster/dagster_home/dagster.yaml
+              subPath: dagster.yaml
+            - name: dagster-config
+              mountPath: /opt/dagster/dagster_home/workspace.yaml
+              subPath: workspace.yaml
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /server_info
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /server_info
+              port: 3000
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 5
+      volumes:
+        - name: dagster-config
+          configMap:
+            name: dagster-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dagster-webserver
+  namespace: mekong-orchestration
+  labels:
+    app: dagster-webserver
+    app.kubernetes.io/part-of: mekong
+spec:
+  selector:
+    app: dagster-webserver
+  ports:
+    - port: 3000
+      targetPort: 3000

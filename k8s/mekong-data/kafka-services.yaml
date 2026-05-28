@@ -1,0 +1,44 @@
+# Headless service — gives stable DNS per pod:
+#   kafka-0.kafka-headless.mekong-data.svc.cluster.local:29092
+#   kafka-1.kafka-headless.mekong-data.svc.cluster.local:29092
+#   kafka-2.kafka-headless.mekong-data.svc.cluster.local:29092
+# Used as bootstrap and for advertised listeners.
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-headless
+  namespace: mekong-data
+  labels:
+    app: kafka
+    app.kubernetes.io/part-of: mekong
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app: kafka
+  ports:
+    - name: client
+      port: 29092
+      targetPort: 29092
+    - name: controller
+      port: 9093
+      targetPort: 9093
+---
+# ClusterIP service — single stable endpoint for inter-namespace bootstrap.
+# Clients use kafka.mekong-data.svc.cluster.local:29092 and let the broker
+# redirect subsequent connections to the pod DNS via advertised listeners.
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+  namespace: mekong-data
+  labels:
+    app: kafka
+    app.kubernetes.io/part-of: mekong
+spec:
+  selector:
+    app: kafka
+  ports:
+    - name: client
+      port: 29092
+      targetPort: 29092

@@ -1,0 +1,57 @@
+# Creates market-data and market-analysis buckets, applies lifecycle rules.
+# Mirrors what db/init_minio.py does via the mc CLI.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: minio-init
+  namespace: mekong-data
+  labels:
+    app.kubernetes.io/part-of: mekong
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+        - name: wait-for-minio
+          image: curlimages/curl:8.7.1
+          command:
+            - sh
+            - -c
+            - |
+              until curl -sf http://minio.mekong-data.svc.cluster.local:9000/minio/health/live; do
+                echo "waiting for minio..."; sleep 5
+              done
+      containers:
+        - name: mc
+          image: minio/mc:latest
+          env:
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: access-key
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: secret-key
+          command:
+            - sh
+            - -c
+            - |
+              mc alias set local http://minio.mekong-data.svc.cluster.local:9000 \
+                $MINIO_ACCESS_KEY $MINIO_SECRET_KEY
+
+              mc mb --ignore-existing local/market-data
+              mc mb --ignore-existing local/market-analysis
+
+              # 30-day lifecycle on raw market-data (matches docker-compose setup)
+              mc ilm rule add --expire-days 30 local/market-data
+
+              # Create path prefixes for Spark History and Flink state backends
+              echo "" | mc pipe local/market-data/spark-events/.keep
+              echo "" | mc pipe local/market-data/flink-checkpoints/.keep
+              echo "" | mc pipe local/market-data/flink-savepoints/.keep
+
+              echo "MinIO buckets, lifecycle rules, and path prefixes applied"

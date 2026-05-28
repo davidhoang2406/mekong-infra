@@ -1,0 +1,45 @@
+# Run once after Kafka is healthy to create the two topics.
+# Safe to re-apply — uses --if-not-exists.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kafka-topics-init
+  namespace: mekong-data
+  labels:
+    app.kubernetes.io/part-of: mekong
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+        - name: wait-for-kafka
+          image: apache/kafka:4.0.0
+          command:
+            - bash
+            - -c
+            - |
+              until /opt/kafka/bin/kafka-topics.sh \
+                --bootstrap-server kafka-headless.mekong-data.svc.cluster.local:29092 \
+                --list 2>/dev/null; do
+                echo "waiting for kafka..."; sleep 5
+              done
+      containers:
+        - name: topics
+          image: apache/kafka:4.0.0
+          command:
+            - bash
+            - -c
+            - |
+              BOOTSTRAP=kafka-headless.mekong-data.svc.cluster.local:29092
+              /opt/kafka/bin/kafka-topics.sh --bootstrap-server $BOOTSTRAP \
+                --create --if-not-exists \
+                --topic stock.price.realtime \
+                --partitions 6 \
+                --replication-factor 3
+              /opt/kafka/bin/kafka-topics.sh --bootstrap-server $BOOTSTRAP \
+                --create --if-not-exists \
+                --topic crypto.price.realtime \
+                --partitions 6 \
+                --replication-factor 3
+              echo "topics created"
