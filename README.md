@@ -1,68 +1,101 @@
 # mekong-infra
 
-Docker Compose stack and infrastructure management for the Mekong market-data platform.
-No application code lives here — just infrastructure definitions and initialisation scripts.
+Kubernetes manifests, Helm values, and bootstrap tooling for the Mekong
+market-data platform. No application code lives here — only infrastructure
+definitions and initialisation jobs.
 
-## Assumed directory layout
+Earlier Docker Compose layout has been removed; everything now runs on K8s.
 
-Clone all Mekong repos as siblings:
+## Repository layout
 
 ```
-Mekong/
-  mekong-infra/        ← this repo
-  mekong-jobs/
-  mekong-notebooks/
-  mekong-kafka/
-  mekong-data-models/
+k8s/
+  mekong-data/           # Kafka (StatefulSet), MinIO, Schema Registry, Kafka UI
+  mekong-pipeline/       # producers (stock/crypto) + storage consumer
+  mekong-processing/     # Flink + Spark History Server (uses operator CRDs)
+  mekong-orchestration/  # Dagster daemon, webserver, Postgres
+  mekong-dev/            # JupyterLab
+  mekong-observability/  # Loki stack values
+  rbac/                  # ServiceAccount + Role + RoleBinding per namespace
+  secrets/               # placeholder secret manifests (real values gitignored)
+  ingress.yaml           # *.mekong.local routes
+config/                  # symbol lists, alert thresholds (mounted via ConfigMaps)
+design/                  # architecture docs + service deep-dives
+Makefile                 # k8s-* targets — see below
 ```
 
-If your repos are elsewhere, set `MEKONG_JOBS_DIR` and `MEKONG_NOTEBOOKS_DIR` in a `.env` file.
+## Prerequisites
 
-## Quick start
+- A running Kubernetes cluster (minikube, kind, k3d, or a real cluster).
+- `kubectl` and `helm` on your PATH.
+- For local dev: `minikube` with the `ingress` and `metrics-server` addons.
 
 ```bash
-cp .env.example .env
-make install          # interactive: choose which services to start
+minikube start --cpus=8 --memory=12g --driver=docker
+minikube addons enable ingress
 ```
 
-Or start everything at once:
+## Bootstrap (first time)
 
 ```bash
-make build            # build all Docker images (first time or after Dockerfile changes)
-make up               # start full stack
-make minio-init       # create buckets (run once after first MinIO start)
-make topics-create    # create Kafka topics (run once after first Kafka start)
+make k8s-operators        # install Flink + Spark Helm operators in mekong-processing
+make k8s-namespaces       # create all namespaces
+# Edit k8s/secrets/*.yaml with real values, then:
+make k8s-secrets          # apply + mirror MinIO/Telegram secrets cross-namespace
+make k8s-rbac             # apply RBAC
+make k8s-up               # deploy data + pipeline + processing + dagster + dev + obs
+make k8s-topics-create    # one-shot K8s Job to create Kafka topics
+make k8s-minio-init       # one-shot K8s Job to create MinIO buckets
 ```
-
-## Service URLs
-
-| Service | URL |
-|---|---|
-| Kafka UI | http://localhost:8080 |
-| MinIO console | http://localhost:9001 |
-| Flink UI | http://localhost:8081 |
-| Spark Master | http://localhost:8082 |
-| Spark History | http://localhost:18080 |
-| JupyterLab | http://localhost:8888 |
-| Dagster UI | http://localhost:3000 |
 
 ## Make targets
 
-| Target | Description |
+| Target | Purpose |
 |---|---|
-| `make install` | Interactive: choose services to start + auto-init |
-| `make up` | Start all services |
-| `make down` | Stop all services (volumes preserved) |
-| `make build` | Build all Docker images |
-| `make topics-create` | Create Kafka topics (idempotent) |
-| `make minio-init` | Create MinIO buckets + lifecycle rules (idempotent) |
-| `make storage-flush` | Interactively delete data from MinIO buckets |
-| `make flink-up` | Start Kafka + Flink only |
-| `make spark-up` | Start MinIO + Spark cluster only |
-| `make dagster-up` | Start MinIO + Spark + Dagster |
-| `make jupyter-up` | Start MinIO + Jupyter |
+| `make k8s-operators` | Install Flink + Spark Kubernetes operators (run once) |
+| `make k8s-namespaces` | Create all `mekong-*` namespaces |
+| `make k8s-secrets` | Apply local secret manifests + mirror them across namespaces |
+| `make k8s-rbac` | Apply ServiceAccount + Role + RoleBinding manifests |
+| `make k8s-data-up` | Deploy Kafka, MinIO, Schema Registry, Kafka UI |
+| `make k8s-pipeline-up` | Deploy producers + storage consumer |
+| `make k8s-processing-up` | Deploy Flink + Spark History Server |
+| `make k8s-dagster-up` | Deploy Postgres + Dagster webserver/daemon |
+| `make k8s-logging-up` | Install Loki stack via Helm |
+| `make k8s-dev-up` | Deploy JupyterLab |
+| `make k8s-topics-create` | Create Kafka topics via one-shot Job |
+| `make k8s-minio-init` | Create MinIO buckets + lifecycle rules via one-shot Job |
+| `make k8s-up` | Bring up the entire stack |
+| `make k8s-down` | Delete all workloads (PVCs preserved — data survives) |
+| `make k8s-status` | Show pod status across all namespaces |
 
-## Credentials
+## Service URLs
 
-Default credentials (`minioadmin` / `minioadmin`) work with the Docker Compose defaults.
-Never commit real credentials — use `.env` for local dev and GitHub Secrets for CI.
+Ingress hosts (add to `/etc/hosts` pointing at `minikube ip`):
+
+| Service | Host |
+|---|---|
+| Kafka UI | `kafka-ui.mekong.local` |
+| MinIO console | `minio.mekong.local` |
+| Schema Registry | `schema-registry.mekong.local` |
+| Flink UI | `flink.mekong.local` |
+| Spark History | `spark-history.mekong.local` |
+| JupyterLab | `jupyter.mekong.local` |
+| Dagster UI | `dagster.mekong.local` |
+| Grafana (logs) | `grafana.mekong.local` |
+
+## Secrets
+
+Real secret values are not committed. `k8s/secrets/*.yaml` files are
+gitignored. To set up secrets locally:
+
+1. Copy each `*.yaml` template, fill in base64-encoded values.
+2. `make k8s-secrets` — applies them and mirrors to all consuming namespaces.
+
+For production, replace this with your secrets manager (Vault, AWS SSM, etc.).
+
+## Design docs
+
+See `design/`:
+- `DESIGN.md` — top-level architecture
+- `services/` — one doc per major service (Kafka, MinIO, Flink, Spark,
+  Dagster, Jupyter, Logging, K8s)
