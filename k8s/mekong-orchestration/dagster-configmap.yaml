@@ -21,6 +21,7 @@ data:
       config:
         service_account_name: dagster
         job_namespace: mekong-orchestration
+        job_image: ghcr.io/davidhoang2406/mekong-dagster:latest
         image_pull_policy: Always
         instance_config_map: dagster-config
         run_k8s_config:
