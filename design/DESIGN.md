@@ -31,22 +31,17 @@ Kafka turns the pull into a push pipeline. Producers fetch from the upstream API
 
 ## 2. Architecture
 
-**Editable source:**
-- [`design/images/mekong-platform-architecture.excalidraw`](images/mekong-platform-architecture.excalidraw)
-  — current platform + future trading components (built vs to-be-built distinguished by line style)
-- [`design/images/architecture.excalidraw`](images/architecture.excalidraw)
-  — original Docker-era data flow (kept for reference)
 
 Open in [excalidraw.com](https://excalidraw.com) (File → Open) or via the
 [VS Code Excalidraw extension](https://marketplace.visualstudio.com/items?itemName=pomdtr.excalidraw-editor).
+
+**Architecture**
+![mekong.png](images/mekong.png)
 
 **Data flow (left to right, top half is the live stream layer; bottom half is the batch layer):**
 
 Flow architecture
 ![Untitled-2026-05-17-0037.png](images/architecture.png)
-
-Logging architecture
-![logging-architecture.png](images/logging-architecture.png)
 
 Two-tier storage:
 - **`market-data`** — raw streaming data (Avro). 30-day lifecycle. Recoverable from upstream APIs.
