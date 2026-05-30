@@ -1,7 +1,10 @@
 .PHONY: k8s-namespaces k8s-secrets k8s-rbac k8s-operators \
         k8s-data-up k8s-processing-up k8s-pipeline-up k8s-dagster-up k8s-logging-up k8s-dev-up \
         k8s-up k8s-down k8s-status \
-        k8s-topics-create k8s-minio-init
+        k8s-topics-create k8s-minio-init \
+        platform-up platform-down build-api build-ws build-web
+
+COMPOSE := docker compose -f docker-compose.yml
 
 KUBECTL := kubectl
 HELM    := helm
@@ -148,3 +151,20 @@ k8s-down: ## Delete all mekong K8s resources (PVCs preserved — data survives)
 	$(KUBECTL) delete -f k8s/rbac/ --ignore-not-found
 	$(KUBECTL) delete -f k8s/ingress.yaml --ignore-not-found
 	$(HELM) uninstall loki -n mekong-observability --ignore-not-found
+
+# ── Docker Compose — Data Platform ───────────────────────────────────────────
+
+build-api: ## Build mekong-api Docker image
+	$(COMPOSE) build mekong-api
+
+build-ws: ## Build mekong-ws Docker image
+	$(COMPOSE) build mekong-ws
+
+build-web: ## Build mekong-web Docker image
+	$(COMPOSE) build mekong-web
+
+platform-up: ## Start data platform (Postgres + API + Kong) → http://localhost:3002
+	$(COMPOSE) up -d postgres mekong-api kong
+
+platform-down: ## Stop data platform
+	$(COMPOSE) stop kong mekong-api postgres
