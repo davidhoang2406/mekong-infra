@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dashboard · Mekong</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans:  ['"Inter"',          'system-ui', 'sans-serif'],
+          mono:  ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+        },
+        colors: {
+          bg:         '#ffffff',
+          'bg-muted': '#f5f5f5',
+          fg:         '#1e1e1e',
+          'fg-muted': '#737373',
+          border:     '#e5e5e5',
+          up:         '#16a34a',
+          down:       '#dc2626',
+          live:       '#16a34a',
+        },
+      },
+    },
+  };
+</script>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body class="bg-bg text-fg">
+
+<!-- ── NAVBAR ─────────────────────────────────────────────────────────── -->
+<header class="fixed inset-x-0 top-0 z-30 h-[60px] bg-bg border-b border-border flex items-center px-5">
+  <a href="index.html" class="text-[20px] font-semibold tracking-tight">Mekong</a>
+  <div class="ml-12 flex items-center w-[480px] h-9 bg-bg-muted rounded-md border border-border px-3 text-fg-muted">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    <input class="bg-transparent flex-1 outline-none text-[14px] placeholder-fg-muted" placeholder="Search symbols — VCB, BTC-USDT, FPT..." />
+    <kbd class="ml-2 text-[11px] font-mono px-1.5 py-0.5 rounded border border-border text-fg-muted">⌘K</kbd>
+  </div>
+  <div class="ml-auto flex items-center gap-2 text-fg-muted">
+    <button class="h-9 w-9 grid place-items-center rounded-md hover:bg-bg-muted">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+    </button>
+    <button class="h-9 w-9 grid place-items-center rounded-md hover:bg-bg-muted relative">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+      <span class="absolute top-2 right-2 h-1.5 w-1.5 rounded-full bg-down"></span>
+    </button>
+    <button class="h-9 px-2 flex items-center gap-2 rounded-md hover:bg-bg-muted">
+      <span class="h-7 w-7 rounded-full bg-fg text-bg grid place-items-center text-[11px] font-semibold">D</span>
+      <span class="text-[13px] text-fg">david</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- ── SIDEBAR ────────────────────────────────────────────────────────── -->
+<aside class="fixed top-[60px] bottom-0 left-0 w-[240px] bg-bg border-r border-border flex flex-col">
+  <nav class="flex-1 py-3 px-2 space-y-0.5 text-[14px]">
+    <a href="index.html" class="nav-active relative flex items-center gap-3 px-3 h-9 rounded-md font-medium">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+      Dashboard
+    </a>
+    <a href="#" class="flex items-center gap-3 px-3 h-9 rounded-md text-fg-muted hover:bg-bg-muted hover:text-fg">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      Watchlist
+    </a>
+    <a href="symbol.html" class="flex items-center gap-3 px-3 h-9 rounded-md text-fg-muted hover:bg-bg-muted hover:text-fg">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      Symbols
+    </a>
+    <a href="screener.html" class="flex items-center gap-3 px-3 h-9 rounded-md text-fg-muted hover:bg-bg-muted hover:text-fg">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+      Screener
+    </a>
+    <a href="digest.html" class="flex items-center gap-3 px-3 h-9 rounded-md text-fg-muted hover:bg-bg-muted hover:text-fg">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h12"/></svg>
+      Digest
+    </a>
+    <a href="#" class="flex items-center gap-3 px-3 h-9 rounded-md text-fg-muted hover:bg-bg-muted hover:text-fg">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Settings
+    </a>
+  </nav>
+  <div class="border-t border-border px-4 py-3 flex items-center gap-2 text-[12px]">
+    <span class="h-2 w-2 rounded-full bg-live live-dot"></span>
+    <span class="text-fg-muted">ws connected · 24 ms</span>
+  </div>
+</aside>
+
+<!-- ── MAIN ────────────────────────────────────────────────────────────── -->
+<main class="ml-[240px] pt-[60px] px-6 pb-12">
+
+  <!-- Live ticker -->
+  <div class="ticker-mask my-5 h-12 overflow-hidden rounded-md border border-border bg-bg flex items-center">
+    <div class="ticker-track whitespace-nowrap font-mono text-[13px]">
+      <span class="inline-flex items-center gap-1.5"><b class="font-semibold">VCB</b> <span class="num">85,800</span> <span class="text-up">▲ 0.59%</span></span>
+      <span class="inline-flex items-center gap-1.5"><b class="font-semibold">FPT</b> <span class="num">128,000</span> <span class="text-up">▲ 2.10%</span></span>
+      <span class="inline-flex items-center gap-1.5"><b class="font-semibold">VNM</b> <span class="num">76,500</span> <span class="text-up">▲ 4.12%</span></span>
+      <span class="inline-flex items-center gap-1.5"><b class="font-semibold">HPG</b> <span class="num">25,400</span> <span class="text-down">▼ 3.20%</span></span>
+      <span class="inline-flex items-center gap-1.5"><b class="font-semibold">BTC-USDT</b> <span class="num">68,500</span> <span class="text-up">▲ 1.78%</span></span>
+      <span class="inline-flex items-center gap-1.5"><b class="font-semibold">ETH-USDT</b> <span class="num">3,210</span> <span class="text-up">▲ 0.92%</span></span>
+      <span class="inline-flex items-center gap-1.5"><b class="font-semibold">MWG</b> <span class="num">62,400</span> <span class="text-up">▲ 3.84%</span></span>
+      <span class="inline-flex items-center gap-1.5"><b class="font-semibold">GAS</b> <span class="num">112,300</span> <span class="text-up">▲ 3.22%</span></span>
+      <span class="inline-flex items-center gap-1.5"><b class="font-semibold">MSN</b> <span class="num">62,100</span> <span class="text-down">▼ 2.80%</span></span>
+      <span class="inline-flex items-center gap-1.5"><b class="font-semibold">VIC</b> <span class="num">54,200</span> <span class="text-up">▲ 2.45%</span></span>
+
+      <!-- duplicate for seamless loop -->
+      <span class="inline-flex items-center gap-1.5"><b class="font-semibold">VCB</b> <span class="num">85,800</span> <span class="text-up">▲ 0.59%</span></span>
+      <span class="inline-flex items-center gap-1.5"><b class="font-semibold">FPT</b> <span class="num">128,000</span> <span class="text-up">▲ 2.10%</span></span>
+      <span class="inline-flex items-center gap-1.5"><b class="font-semibold">VNM</b> <span class="num">76,500</span> <span class="text-up">▲ 4.12%</span></span>
+      <span class="inline-flex items-center gap-1.5"><b class="font-semibold">HPG</b> <span class="num">25,400</span> <span class="text-down">▼ 3.20%</span></span>
+      <span class="inline-flex items-center gap-1.5"><b class="font-semibold">BTC-USDT</b> <span class="num">68,500</span> <span class="text-up">▲ 1.78%</span></span>
+      <span class="inline-flex items-center gap-1.5"><b class="font-semibold">ETH-USDT</b> <span class="num">3,210</span> <span class="text-up">▲ 0.92%</span></span>
+      <span class="inline-flex items-center gap-1.5"><b class="font-semibold">MWG</b> <span class="num">62,400</span> <span class="text-up">▲ 3.84%</span></span>
+      <span class="inline-flex items-center gap-1.5"><b class="font-semibold">GAS</b> <span class="num">112,300</span> <span class="text-up">▲ 3.22%</span></span>
+      <span class="inline-flex items-center gap-1.5"><b class="font-semibold">MSN</b> <span class="num">62,100</span> <span class="text-down">▼ 2.80%</span></span>
+      <span class="inline-flex items-center gap-1.5"><b class="font-semibold">VIC</b> <span class="num">54,200</span> <span class="text-up">▲ 2.45%</span></span>
+    </div>
+  </div>
+
+  <!-- Page heading -->
+  <div class="flex items-end justify-between mt-2 mb-5">
+    <div>
+      <h1 class="text-[24px] font-semibold tracking-tight">Dashboard</h1>
+      <p class="text-[13px] text-fg-muted mt-1">Today, 2026-05-29 · ICT close — HOSE 15:00 · Crypto 24/7</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <button class="h-9 px-3 rounded-md border border-border text-[13px] hover:bg-bg-muted">↻ Refresh</button>
+      <button class="h-9 px-3 rounded-md bg-fg text-bg text-[13px] hover:opacity-90">+ Add to Watchlist</button>
+    </div>
+  </div>
+
+  <!-- 2x2 grid -->
+  <div class="grid grid-cols-2 gap-5">
+
+    <!-- Top Gainers -->
+    <section class="card bg-bg border border-border rounded-lg">
+      <header class="h-12 px-5 flex items-center justify-between border-b border-border">
+        <h2 class="text-[15px] font-semibold">Top Gainers</h2>
+        <button class="text-[12px] text-fg-muted hover:text-fg flex items-center gap-1">Today
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+      </header>
+      <table class="tbl w-full text-[13px]">
+        <thead>
+          <tr class="text-[11px] uppercase tracking-wider text-fg-muted">
+            <th class="text-left font-medium pl-5 py-2 w-8">#</th>
+            <th class="text-left font-medium">Symbol</th>
+            <th class="text-right font-medium">% Chg</th>
+            <th class="text-right font-medium">Price</th>
+            <th class="text-right font-medium pr-5">Volume</th>
+          </tr>
+        </thead>
+        <tbody class="font-mono">
+          <tr><td class="pl-5 py-2 text-fg-muted">1</td><td class="font-sans font-semibold">FPT</td><td class="text-right text-up">▲ 6.67%</td><td class="text-right num">128,000</td><td class="text-right num pr-5">5,678,901</td></tr>
+          <tr><td class="pl-5 py-2 text-fg-muted">2</td><td class="font-sans font-semibold">VNM</td><td class="text-right text-up">▲ 4.12%</td><td class="text-right num">76,500</td><td class="text-right num pr-5">3,210,000</td></tr>
+          <tr><td class="pl-5 py-2 text-fg-muted">3</td><td class="font-sans font-semibold">MWG</td><td class="text-right text-up">▲ 3.84%</td><td class="text-right num">62,400</td><td class="text-right num pr-5">2,894,500</td></tr>
+          <tr><td class="pl-5 py-2 text-fg-muted">4</td><td class="font-sans font-semibold">GAS</td><td class="text-right text-up">▲ 3.22%</td><td class="text-right num">112,300</td><td class="text-right num pr-5">1,765,200</td></tr>
+          <tr><td class="pl-5 py-2 text-fg-muted">5</td><td class="font-sans font-semibold">POW</td><td class="text-right text-up">▲ 2.91%</td><td class="text-right num">14,800</td><td class="text-right num pr-5">4,512,800</td></tr>
+          <tr><td class="pl-5 py-2 text-fg-muted">6</td><td class="font-sans font-semibold">VIC</td><td class="text-right text-up">▲ 2.45%</td><td class="text-right num">54,200</td><td class="text-right num pr-5">2,143,000</td></tr>
+          <tr><td class="pl-5 py-2 text-fg-muted">7</td><td class="font-sans font-semibold">HDB</td><td class="text-right text-up">▲ 1.98%</td><td class="text-right num">28,600</td><td class="text-right num pr-5">3,876,400</td></tr>
+          <tr><td class="pl-5 py-2 text-fg-muted">8</td><td class="font-sans font-semibold">STB</td><td class="text-right text-up">▲ 1.76%</td><td class="text-right num">31,500</td><td class="text-right num pr-5">2,654,700</td></tr>
+          <tr><td class="pl-5 py-2 text-fg-muted">9</td><td class="font-sans font-semibold">CTG</td><td class="text-right text-up">▲ 1.54%</td><td class="text-right num">36,800</td><td class="text-right num pr-5">4,322,100</td></tr>
+          <tr><td class="pl-5 py-2 text-fg-muted">10</td><td class="font-sans font-semibold">ACB</td><td class="text-right text-up">▲ 1.32%</td><td class="text-right num">24,900</td><td class="text-right num pr-5">5,123,890</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Top Losers -->
+    <section class="card bg-bg border border-border rounded-lg">
+      <header class="h-12 px-5 flex items-center justify-between border-b border-border">
+        <h2 class="text-[15px] font-semibold">Top Losers</h2>
+        <button class="text-[12px] text-fg-muted hover:text-fg flex items-center gap-1">Today
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+      </header>
+      <table class="tbl w-full text-[13px]">
+        <thead>
+          <tr class="text-[11px] uppercase tracking-wider text-fg-muted">
+            <th class="text-left font-medium pl-5 py-2 w-8">#</th>
+            <th class="text-left font-medium">Symbol</th>
+            <th class="text-right font-medium">% Chg</th>
+            <th class="text-right font-medium">Price</th>
+            <th class="text-right font-medium pr-5">Volume</th>
+          </tr>
+        </thead>
+        <tbody class="font-mono">
+          <tr><td class="pl-5 py-2 text-fg-muted">1</td><td class="font-sans font-semibold">HPG</td><td class="text-right text-down">▼ 3.20%</td><td class="text-right num">25,400</td><td class="text-right num pr-5">8,900,123</td></tr>
+          <tr><td class="pl-5 py-2 text-fg-muted">2</td><td class="font-sans font-semibold">MSN</td><td class="text-right text-down">▼ 2.80%</td><td class="text-right num">62,100</td><td class="text-right num pr-5">1,234,500</td></tr>
+          <tr><td class="pl-5 py-2 text-fg-muted">3</td><td class="font-sans font-semibold">PNJ</td><td class="text-right text-down">▼ 2.51%</td><td class="text-right num">94,200</td><td class="text-right num pr-5">789,000</td></tr>
+          <tr><td class="pl-5 py-2 text-fg-muted">4</td><td class="font-sans font-semibold">SSI</td><td class="text-right text-down">▼ 2.12%</td><td class="text-right num">28,300</td><td class="text-right num pr-5">2,453,100</td></tr>
+          <tr><td class="pl-5 py-2 text-fg-muted">5</td><td class="font-sans font-semibold">VND</td><td class="text-right text-down">▼ 1.89%</td><td class="text-right num">18,200</td><td class="text-right num pr-5">3,712,800</td></tr>
+          <tr><td class="pl-5 py-2 text-fg-muted">6</td><td class="font-sans font-semibold">KDH</td><td class="text-right text-down">▼ 1.64%</td><td class="text-right num">36,500</td><td class="text-right num pr-5">954,200</td></tr>
+          <tr><td class="pl-5 py-2 text-fg-muted">7</td><td class="font-sans font-semibold">GMD</td><td class="text-right text-down">▼ 1.42%</td><td class="text-right num">68,300</td><td class="text-right num pr-5">1,127,000</td></tr>
+          <tr><td class="pl-5 py-2 text-fg-muted">8</td><td class="font-sans font-semibold">PVS</td><td class="text-right text-down">▼ 1.21%</td><td class="text-right num">32,600</td><td class="text-right num pr-5">2,008,500</td></tr>
+          <tr><td class="pl-5 py-2 text-fg-muted">9</td><td class="font-sans font-semibold">NLG</td><td class="text-right text-down">▼ 0.98%</td><td class="text-right num">45,100</td><td class="text-right num pr-5">678,000</td></tr>
+          <tr><td class="pl-5 py-2 text-fg-muted">10</td><td class="font-sans font-semibold">TCH</td><td class="text-right text-down">▼ 0.75%</td><td class="text-right num">19,800</td><td class="text-right num pr-5">1,432,700</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Volume Leaders -->
+    <section class="card bg-bg border border-border rounded-lg">
+      <header class="h-12 px-5 flex items-center justify-between border-b border-border">
+        <h2 class="text-[15px] font-semibold">Volume Leaders</h2>
+        <button class="text-[12px] text-fg-muted hover:text-fg flex items-center gap-1">Today
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+      </header>
+      <table class="tbl w-full text-[13px]">
+        <thead>
+          <tr class="text-[11px] uppercase tracking-wider text-fg-muted">
+            <th class="text-left font-medium pl-5 py-2 w-8">#</th>
+            <th class="text-left font-medium">Symbol</th>
+            <th class="text-right font-medium">Volume</th>
+            <th class="text-right font-medium">Price</th>
+            <th class="text-right font-medium pr-5">% Chg</th>
+          </tr>
+        </thead>
+        <tbody class="font-mono">
+          <tr><td class="pl-5 py-2 text-fg-muted">1</td><td class="font-sans font-semibold">HPG</td><td class="text-right num">8,900,123</td><td class="text-right num">25,400</td><td class="text-right text-down pr-5">▼ 3.20%</td></tr>
+          <tr><td class="pl-5 py-2 text-fg-muted">2</td><td class="font-sans font-semibold">FPT</td><td class="text-right num">5,678,901</td><td class="text-right num">128,000</td><td class="text-right text-up pr-5">▲ 6.67%</td></tr>
+          <tr><td class="pl-5 py-2 text-fg-muted">3</td><td class="font-sans font-semibold">ACB</td><td class="text-right num">5,123,890</td><td class="text-right num">24,900</td><td class="text-right text-up pr-5">▲ 1.32%</td></tr>
+          <tr><td class="pl-5 py-2 text-fg-muted">4</td><td class="font-sans font-semibold">POW</td><td class="text-right num">4,512,800</td><td class="text-right num">14,800</td><td class="text-right text-up pr-5">▲ 2.91%</td></tr>
+          <tr><td class="pl-5 py-2 text-fg-muted">5</td><td class="font-sans font-semibold">CTG</td><td class="text-right num">4,322,100</td><td class="text-right num">36,800</td><td class="text-right text-up pr-5">▲ 1.54%</td></tr>
+          <tr><td class="pl-5 py-2 text-fg-muted">6</td><td class="font-sans font-semibold">STB</td><td class="text-right num">2,654,700</td><td class="text-right num">31,500</td><td class="text-right text-up pr-5">▲ 1.76%</td></tr>
+          <tr><td class="pl-5 py-2 text-fg-muted">7</td><td class="font-sans font-semibold">HDB</td><td class="text-right num">3,876,400</td><td class="text-right num">28,600</td><td class="text-right text-up pr-5">▲ 1.98%</td></tr>
+          <tr><td class="pl-5 py-2 text-fg-muted">8</td><td class="font-sans font-semibold">VND</td><td class="text-right num">3,712,800</td><td class="text-right num">18,200</td><td class="text-right text-down pr-5">▼ 1.89%</td></tr>
+          <tr><td class="pl-5 py-2 text-fg-muted">9</td><td class="font-sans font-semibold">VNM</td><td class="text-right num">3,210,000</td><td class="text-right num">76,500</td><td class="text-right text-up pr-5">▲ 4.12%</td></tr>
+          <tr><td class="pl-5 py-2 text-fg-muted">10</td><td class="font-sans font-semibold">MWG</td><td class="text-right num">2,894,500</td><td class="text-right num">62,400</td><td class="text-right text-up pr-5">▲ 3.84%</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Watchlist -->
+    <section class="card bg-bg border border-border rounded-lg">
+      <header class="h-12 px-5 flex items-center justify-between border-b border-border">
+        <h2 class="text-[15px] font-semibold">My Watchlist <span class="ml-2 text-[11px] font-normal text-fg-muted">4 items</span></h2>
+        <button class="text-[12px] text-fg-muted hover:text-fg flex items-center gap-1">+ Add</button>
+      </header>
+      <div class="p-4 grid grid-cols-2 gap-3">
+
+        <a href="symbol.html" class="card border border-border rounded-md p-4 hover:bg-bg-muted block">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="font-semibold text-[15px]">VCB</div>
+              <div class="text-[11px] text-fg-muted">HOSE · Stock</div>
+            </div>
+            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded border border-up text-up uppercase tracking-wider">Live</span>
+          </div>
+          <div class="mt-3 font-mono">
+            <span class="text-[18px] font-semibold num">85,800</span>
+            <span class="text-up text-[13px] ml-1">▲ 500 (+0.59%)</span>
+          </div>
+          <svg class="spark mt-2 w-full h-10" viewBox="0 0 240 40" preserveAspectRatio="none">
+            <polyline fill="none" stroke="#16a34a" stroke-width="1.5" points="0,30 12,28 24,32 36,26 48,28 60,22 72,24 84,20 96,22 110,18 124,21 138,17 152,19 166,15 180,17 195,13 210,15 225,11 240,8"/>
+          </svg>
+        </a>
+
+        <a href="#" class="card border border-border rounded-md p-4 hover:bg-bg-muted block">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="font-semibold text-[15px]">BTC-USDT</div>
+              <div class="text-[11px] text-fg-muted">BINANCE · Crypto</div>
+            </div>
+            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded border border-up text-up uppercase tracking-wider">Live</span>
+          </div>
+          <div class="mt-3 font-mono">
+            <span class="text-[18px] font-semibold num">68,500</span>
+            <span class="text-up text-[13px] ml-1">▲ 1,200 (+1.78%)</span>
+          </div>
+          <svg class="spark mt-2 w-full h-10" viewBox="0 0 240 40" preserveAspectRatio="none">
+            <polyline fill="none" stroke="#16a34a" stroke-width="1.5" points="0,18 15,22 30,16 45,20 60,14 75,18 90,12 105,16 120,10 135,14 150,8 165,12 180,6 195,10 210,4 225,8 240,2"/>
+          </svg>
+        </a>
+
+        <a href="#" class="card border border-border rounded-md p-4 hover:bg-bg-muted block">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="font-semibold text-[15px]">FPT</div>
+              <div class="text-[11px] text-fg-muted">HOSE · Stock</div>
+            </div>
+            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded border border-up text-up uppercase tracking-wider">Live</span>
+          </div>
+          <div class="mt-3 font-mono">
+            <span class="text-[18px] font-semibold num">128,000</span>
+            <span class="text-up text-[13px] ml-1">▲ 2,640 (+2.10%)</span>
+          </div>
+          <svg class="spark mt-2 w-full h-10" viewBox="0 0 240 40" preserveAspectRatio="none">
+            <polyline fill="none" stroke="#16a34a" stroke-width="1.5" points="0,32 20,28 40,30 60,22 80,24 100,18 120,22 140,15 160,18 180,12 200,15 220,8 240,4"/>
+          </svg>
+        </a>
+
+        <a href="#" class="card border border-border rounded-md p-4 hover:bg-bg-muted block">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="font-semibold text-[15px]">HPG</div>
+              <div class="text-[11px] text-fg-muted">HOSE · Stock</div>
+            </div>
+            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded border border-down text-down uppercase tracking-wider">Live</span>
+          </div>
+          <div class="mt-3 font-mono">
+            <span class="text-[18px] font-semibold num">25,400</span>
+            <span class="text-down text-[13px] ml-1">▼ 840 (-3.20%)</span>
+          </div>
+          <svg class="spark mt-2 w-full h-10" viewBox="0 0 240 40" preserveAspectRatio="none">
+            <polyline fill="none" stroke="#dc2626" stroke-width="1.5" points="0,4 20,8 40,6 60,10 80,12 100,10 120,16 140,14 160,18 180,16 200,22 220,26 240,30"/>
+          </svg>
+        </a>
+
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Data sources footer -->
+  <p class="mt-6 text-[11px] text-fg-muted">
+    Live ticker subscribes to <code>WS *</code> · tables read <code>GET /api/v1/digest?date=today</code> · watchlist reads <code>GET /api/v1/watchlists</code> + per-symbol <code>GET /api/v1/ohlcv</code>.
+  </p>
+
+</main>
+
+</body>
+</html>

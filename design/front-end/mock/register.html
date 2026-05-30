@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Create account · Mekong</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { theme: { extend: {
+    fontFamily: { sans: ['"Inter"','system-ui','sans-serif'], mono: ['"JetBrains Mono"','ui-monospace','monospace'] },
+    colors: { bg:'#ffffff','bg-muted':'#f5f5f5', fg:'#1e1e1e','fg-muted':'#737373', border:'#e5e5e5', up:'#16a34a', down:'#dc2626' },
+  }}};
+</script>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body class="min-h-screen bg-bg-muted py-12 px-4">
+
+<div class="w-full max-w-md mx-auto">
+  <div class="text-center mb-8">
+    <a href="index.html" class="inline-block text-[28px] font-bold tracking-tight">Mekong</a>
+    <p class="text-[13px] text-fg-muted mt-1">Free during beta &middot; no credit card required</p>
+  </div>
+
+  <div class="bg-bg border border-border rounded-xl p-8 card">
+    <h1 class="text-[20px] font-semibold tracking-tight">Create your account</h1>
+    <p class="text-[13px] text-fg-muted mt-1">Start tracking VN stocks &amp; crypto in 30 seconds</p>
+
+    <form class="mt-6 space-y-4">
+      <label class="block">
+        <span class="block text-[12px] font-medium mb-1.5">Full name</span>
+        <input type="text" placeholder="Nguyen Van A" autocomplete="name" class="w-full h-11 px-3 rounded-md border border-border text-[14px] bg-bg outline-none focus:border-fg focus:ring-1 focus:ring-fg" />
+      </label>
+
+      <label class="block">
+        <span class="block text-[12px] font-medium mb-1.5">Email</span>
+        <input type="email" placeholder="you@example.com" autocomplete="email" class="w-full h-11 px-3 rounded-md border border-border text-[14px] bg-bg outline-none focus:border-fg focus:ring-1 focus:ring-fg" />
+      </label>
+
+      <label class="block">
+        <span class="block text-[12px] font-medium mb-1.5">Password</span>
+        <div class="relative">
+          <input type="password" placeholder="••••••••••••" autocomplete="new-password" class="w-full h-11 px-3 pr-10 rounded-md border border-border text-[14px] bg-bg outline-none focus:border-fg focus:ring-1 focus:ring-fg" />
+          <button type="button" class="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 grid place-items-center text-fg-muted hover:text-fg">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <!-- Strength meter -->
+        <div class="mt-2 grid grid-cols-4 gap-1.5">
+          <span class="h-1 rounded-full bg-up"></span>
+          <span class="h-1 rounded-full bg-up"></span>
+          <span class="h-1 rounded-full bg-up"></span>
+          <span class="h-1 rounded-full bg-border"></span>
+        </div>
+        <p class="mt-1.5 text-[11px] text-fg-muted">Min 12 chars &middot; 1 number &middot; 1 symbol &middot; <span class="text-up font-medium">Strong</span></p>
+      </label>
+
+      <label class="block">
+        <span class="block text-[12px] font-medium mb-1.5">Confirm password</span>
+        <input type="password" placeholder="••••••••••••" autocomplete="new-password" class="w-full h-11 px-3 rounded-md border border-border text-[14px] bg-bg outline-none focus:border-fg focus:ring-1 focus:ring-fg" />
+      </label>
+
+      <label class="flex items-start gap-2 text-[12px] text-fg-muted leading-relaxed">
+        <input type="checkbox" class="mt-0.5 h-4 w-4 rounded border-border text-fg focus:ring-fg" />
+        I agree to the <a href="#" class="text-fg underline">Terms of Service</a> and <a href="#" class="text-fg underline">Privacy Policy</a>.
+      </label>
+
+      <button type="submit" class="w-full h-11 rounded-md bg-fg text-bg text-[14px] font-semibold hover:opacity-90 transition-opacity">
+        Create account
+      </button>
+    </form>
+  </div>
+
+  <p class="text-center text-[13px] text-fg-muted mt-6">
+    Already have an account?
+    <a href="login.html" class="text-fg font-medium hover:underline">Sign in →</a>
+  </p>
+</div>
+
+</body>
+</html>

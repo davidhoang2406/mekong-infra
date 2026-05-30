@@ -1,0 +1,49 @@
+/* Mekong Web — shared polish on top of Tailwind */
+
+html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+body { font-family: 'Inter', system-ui, sans-serif; }
+.font-mono, code, pre { font-family: 'JetBrains Mono', ui-monospace, monospace; font-feature-settings: 'tnum' on, 'cv03' on, 'cv04' on; }
+
+/* Hairline underline on focus rings (replaces Tailwind default offset) */
+:focus-visible { outline: 2px solid #1e1e1e; outline-offset: 2px; border-radius: 4px; }
+
+/* Live pulse */
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+.live-dot { animation: live-pulse 1.6s ease-in-out infinite; }
+
+/* Ticker scroll */
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.ticker-track { display: inline-flex; gap: 3rem; animation: ticker-scroll 60s linear infinite; }
+.ticker-mask { mask-image: linear-gradient(90deg, transparent, #000 40px, #000 calc(100% - 40px), transparent); }
+
+/* Sparkline + candlestick stroke smoothing */
+svg.spark, svg.candle, svg.rsi, svg.macd { shape-rendering: geometricPrecision; }
+svg.spark polyline { stroke-linejoin: round; stroke-linecap: round; }
+
+/* Subtle elevation on cards */
+.card { box-shadow: 0 1px 0 rgba(30,30,30,0.04); }
+.card:hover { box-shadow: 0 2px 8px rgba(30,30,30,0.06); }
+
+/* Row hover */
+.row-hover { transition: background-color 80ms ease; }
+.row-hover:hover { background-color: #fafafa; cursor: pointer; }
+
+/* Table striping (very subtle) */
+.tbl tbody tr:nth-child(even) { background-color: #fafafa; }
+.tbl tbody tr:hover { background-color: #f5f5f5; cursor: pointer; }
+
+/* Sidebar active pill */
+.nav-active { background-color: #f5f5f5; }
+.nav-active::before {
+  content: ''; position: absolute; left: 0; top: 6px; bottom: 6px;
+  width: 3px; background: #1e1e1e; border-radius: 2px;
+}
+
+/* Number alignment */
+.num { font-variant-numeric: tabular-nums; }

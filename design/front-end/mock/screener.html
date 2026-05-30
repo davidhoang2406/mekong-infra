@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Screener · Mekong</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { theme: { extend: {
+    fontFamily: { sans: ['"Inter"','system-ui','sans-serif'], mono: ['"JetBrains Mono"','ui-monospace','monospace'] },
+    colors: { bg:'#ffffff','bg-muted':'#f5f5f5', fg:'#1e1e1e','fg-muted':'#737373', border:'#e5e5e5', up:'#16a34a', down:'#dc2626', live:'#16a34a' },
+  }}};
+</script>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body class="bg-bg text-fg">
+
+<header class="fixed inset-x-0 top-0 z-30 h-[60px] bg-bg border-b border-border flex items-center px-5">
+  <a href="index.html" class="text-[20px] font-semibold tracking-tight">Mekong</a>
+  <div class="ml-12 flex items-center w-[480px] h-9 bg-bg-muted rounded-md border border-border px-3 text-fg-muted">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    <input class="bg-transparent flex-1 outline-none text-[14px] placeholder-fg-muted" placeholder="Search symbols..." />
+    <kbd class="ml-2 text-[11px] font-mono px-1.5 py-0.5 rounded border border-border">⌘K</kbd>
+  </div>
+  <div class="ml-auto flex items-center gap-2 text-fg-muted">
+    <button class="h-9 w-9 grid place-items-center rounded-md hover:bg-bg-muted"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button>
+    <button class="h-9 w-9 grid place-items-center rounded-md hover:bg-bg-muted"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></button>
+    <button class="h-9 px-2 flex items-center gap-2 rounded-md hover:bg-bg-muted">
+      <span class="h-7 w-7 rounded-full bg-fg text-bg grid place-items-center text-[11px] font-semibold">D</span>
+      <span class="text-[13px] text-fg">david</span>
+    </button>
+  </div>
+</header>
+
+<aside class="fixed top-[60px] bottom-0 left-0 w-[240px] bg-bg border-r border-border flex flex-col">
+  <nav class="flex-1 py-3 px-2 space-y-0.5 text-[14px]">
+    <a href="index.html" class="flex items-center gap-3 px-3 h-9 rounded-md text-fg-muted hover:bg-bg-muted hover:text-fg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>Dashboard</a>
+    <a href="#" class="flex items-center gap-3 px-3 h-9 rounded-md text-fg-muted hover:bg-bg-muted hover:text-fg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Watchlist</a>
+    <a href="symbol.html" class="flex items-center gap-3 px-3 h-9 rounded-md text-fg-muted hover:bg-bg-muted hover:text-fg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>Symbols</a>
+    <a href="screener.html" class="nav-active relative flex items-center gap-3 px-3 h-9 rounded-md font-medium"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>Screener</a>
+    <a href="digest.html" class="flex items-center gap-3 px-3 h-9 rounded-md text-fg-muted hover:bg-bg-muted hover:text-fg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18M3 12h18M3 17h12"/></svg>Digest</a>
+    <a href="#" class="flex items-center gap-3 px-3 h-9 rounded-md text-fg-muted hover:bg-bg-muted hover:text-fg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</a>
+  </nav>
+  <div class="border-t border-border px-4 py-3 flex items-center gap-2 text-[12px]"><span class="h-2 w-2 rounded-full bg-live live-dot"></span><span class="text-fg-muted">ws connected · 24 ms</span></div>
+</aside>
+
+<main class="ml-[240px] pt-[60px] px-6 pb-12">
+
+  <!-- Heading -->
+  <div class="flex items-end justify-between mt-5 mb-5">
+    <div>
+      <h1 class="text-[24px] font-semibold tracking-tight">Fundamental Screener</h1>
+      <p class="text-[13px] text-fg-muted mt-1">Weekly P/E, P/B, ROE, EPS, D/E filter — refreshed every Monday 08:00 ICT</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <button class="h-9 px-3 rounded-md border border-border text-[13px] hover:bg-bg-muted flex items-center gap-1.5">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export CSV
+      </button>
+    </div>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="flex items-center flex-wrap gap-2 mb-4">
+    <button class="h-9 px-3 rounded-md border border-border text-[13px] hover:bg-bg-muted flex items-center gap-1.5">
+      Year <b>2026</b>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+    <button class="h-9 px-3 rounded-md border border-border text-[13px] hover:bg-bg-muted flex items-center gap-1.5">
+      Week <b>21</b> <span class="text-fg-muted font-normal">(May 19–25)</span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+    <button class="h-9 px-3 rounded-md border border-border text-[13px] hover:bg-bg-muted flex items-center gap-1.5">
+      Sector <span class="text-fg-muted">All</span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+    <button class="h-9 px-3 rounded-md border border-border text-[13px] hover:bg-bg-muted flex items-center gap-1.5">
+      Industry <span class="text-fg-muted">All</span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+
+    <div class="ml-auto flex items-center h-9 w-[320px] bg-bg-muted rounded-md border border-border px-3 text-fg-muted">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input class="bg-transparent flex-1 outline-none text-[13px] placeholder-fg-muted" placeholder="Filter by symbol..." />
+    </div>
+  </div>
+
+  <!-- Active filter chips -->
+  <div class="flex items-center gap-2 mb-3 text-[12px]">
+    <span class="text-fg-muted">Active:</span>
+    <span class="inline-flex items-center gap-1.5 h-6 px-2 rounded-full bg-bg-muted border border-border">P/E ≤ 25 <button class="text-fg-muted hover:text-fg">×</button></span>
+    <span class="inline-flex items-center gap-1.5 h-6 px-2 rounded-full bg-bg-muted border border-border">ROE ≥ 15% <button class="text-fg-muted hover:text-fg">×</button></span>
+    <span class="inline-flex items-center gap-1.5 h-6 px-2 rounded-full bg-bg-muted border border-border">D/E ≤ 1.5 <button class="text-fg-muted hover:text-fg">×</button></span>
+    <button class="text-[12px] text-fg-muted hover:text-fg ml-1">+ Add filter</button>
+  </div>
+
+  <!-- Table -->
+  <div class="card bg-bg border border-border rounded-lg overflow-hidden">
+    <table class="tbl w-full text-[13px]">
+      <thead class="bg-bg-muted text-[11px] uppercase tracking-wider text-fg-muted">
+        <tr>
+          <th class="text-left font-medium pl-5 py-3">Symbol</th>
+          <th class="text-left font-medium">Sector</th>
+          <th class="text-right font-medium cursor-pointer">P/E <span class="text-fg">▾</span></th>
+          <th class="text-right font-medium cursor-pointer">P/B</th>
+          <th class="text-right font-medium cursor-pointer">ROE %</th>
+          <th class="text-right font-medium cursor-pointer">EPS</th>
+          <th class="text-right font-medium cursor-pointer">D/E</th>
+          <th class="text-right font-medium cursor-pointer">Curr Ratio</th>
+          <th class="text-right font-medium pr-5">Action</th>
+        </tr>
+      </thead>
+      <tbody class="font-mono">
+        <tr><td class="pl-5 py-3"><a href="symbol.html" class="font-sans font-semibold hover:underline">VCB</a></td><td class="font-sans text-fg-muted">Banking</td><td class="text-right num">9.4</td><td class="text-right num">1.3</td><td class="text-right num text-up">24.1</td><td class="text-right num">2,900</td><td class="text-right num">0.9</td><td class="text-right num">1.5</td><td class="text-right pr-5"><a href="symbol.html" class="text-[12px] px-2 py-1 rounded border border-border hover:bg-bg-muted">View</a></td></tr>
+        <tr><td class="pl-5 py-3"><a href="#" class="font-sans font-semibold hover:underline">HDB</a></td><td class="font-sans text-fg-muted">Banking</td><td class="text-right num">10.8</td><td class="text-right num">1.6</td><td class="text-right num text-up">24.1</td><td class="text-right num">2,300</td><td class="text-right num">0.9</td><td class="text-right num">1.3</td><td class="text-right pr-5"><a href="#" class="text-[12px] px-2 py-1 rounded border border-border hover:bg-bg-muted">View</a></td></tr>
+        <tr><td class="pl-5 py-3"><a href="#" class="font-sans font-semibold hover:underline">STB</a></td><td class="font-sans text-fg-muted">Banking</td><td class="text-right num">11.3</td><td class="text-right num">1.5</td><td class="text-right num text-up">19.7</td><td class="text-right num">2,800</td><td class="text-right num">0.7</td><td class="text-right num">1.4</td><td class="text-right pr-5"><a href="#" class="text-[12px] px-2 py-1 rounded border border-border hover:bg-bg-muted">View</a></td></tr>
+        <tr><td class="pl-5 py-3"><a href="#" class="font-sans font-semibold hover:underline">CTG</a></td><td class="font-sans text-fg-muted">Banking</td><td class="text-right num">12.0</td><td class="text-right num">1.7</td><td class="text-right num text-up">22.8</td><td class="text-right num">3,100</td><td class="text-right num">0.8</td><td class="text-right num">1.4</td><td class="text-right pr-5"><a href="#" class="text-[12px] px-2 py-1 rounded border border-border hover:bg-bg-muted">View</a></td></tr>
+        <tr><td class="pl-5 py-3"><a href="#" class="font-sans font-semibold hover:underline">GAS</a></td><td class="font-sans text-fg-muted">Utilities</td><td class="text-right num">12.5</td><td class="text-right num">2.3</td><td class="text-right num">18.6</td><td class="text-right num">5,600</td><td class="text-right num">0.6</td><td class="text-right num">1.7</td><td class="text-right pr-5"><a href="#" class="text-[12px] px-2 py-1 rounded border border-border hover:bg-bg-muted">View</a></td></tr>
+        <tr><td class="pl-5 py-3"><a href="#" class="font-sans font-semibold hover:underline">HPG</a></td><td class="font-sans text-fg-muted">Materials</td><td class="text-right num">9.8</td><td class="text-right num">1.2</td><td class="text-right num">14.5</td><td class="text-right num">3,200</td><td class="text-right num">1.5</td><td class="text-right num">1.2</td><td class="text-right pr-5"><a href="#" class="text-[12px] px-2 py-1 rounded border border-border hover:bg-bg-muted">View</a></td></tr>
+        <tr><td class="pl-5 py-3"><a href="#" class="font-sans font-semibold hover:underline">ACB</a></td><td class="font-sans text-fg-muted">Banking</td><td class="text-right num">10.8</td><td class="text-right num">1.6</td><td class="text-right num text-up">24.1</td><td class="text-right num">2,300</td><td class="text-right num">0.9</td><td class="text-right num">1.3</td><td class="text-right pr-5"><a href="#" class="text-[12px] px-2 py-1 rounded border border-border hover:bg-bg-muted">View</a></td></tr>
+        <tr><td class="pl-5 py-3"><a href="#" class="font-sans font-semibold hover:underline">VCB</a></td><td class="font-sans text-fg-muted">Banking</td><td class="text-right num">14.2</td><td class="text-right num">2.1</td><td class="text-right num text-up">22.5</td><td class="text-right num">6,200</td><td class="text-right num">0.8</td><td class="text-right num">1.4</td><td class="text-right pr-5"><a href="symbol.html" class="text-[12px] px-2 py-1 rounded border border-border hover:bg-bg-muted">View</a></td></tr>
+        <tr><td class="pl-5 py-3"><a href="#" class="font-sans font-semibold hover:underline">MWG</a></td><td class="font-sans text-fg-muted">Retail</td><td class="text-right num">16.4</td><td class="text-right num">2.8</td><td class="text-right num text-up">21.3</td><td class="text-right num">4,400</td><td class="text-right num">1.1</td><td class="text-right num">1.5</td><td class="text-right pr-5"><a href="#" class="text-[12px] px-2 py-1 rounded border border-border hover:bg-bg-muted">View</a></td></tr>
+        <tr><td class="pl-5 py-3"><a href="#" class="font-sans font-semibold hover:underline">POW</a></td><td class="font-sans text-fg-muted">Utilities</td><td class="text-right num">16.7</td><td class="text-right num">1.4</td><td class="text-right num">10.5</td><td class="text-right num">1,100</td><td class="text-right num">1.3</td><td class="text-right num">1.2</td><td class="text-right pr-5"><a href="#" class="text-[12px] px-2 py-1 rounded border border-border hover:bg-bg-muted">View</a></td></tr>
+        <tr><td class="pl-5 py-3"><a href="#" class="font-sans font-semibold hover:underline">FPT</a></td><td class="font-sans text-fg-muted">Tech</td><td class="text-right num">18.5</td><td class="text-right num">3.0</td><td class="text-right num text-up">19.8</td><td class="text-right num">4,800</td><td class="text-right num">1.2</td><td class="text-right num">1.6</td><td class="text-right pr-5"><a href="#" class="text-[12px] px-2 py-1 rounded border border-border hover:bg-bg-muted">View</a></td></tr>
+        <tr><td class="pl-5 py-3"><a href="#" class="font-sans font-semibold hover:underline">VNM</a></td><td class="font-sans text-fg-muted">Consumer</td><td class="text-right num">22.1</td><td class="text-right num">4.5</td><td class="text-right num text-up">28.0</td><td class="text-right num">5,100</td><td class="text-right num">0.5</td><td class="text-right num">2.0</td><td class="text-right pr-5"><a href="#" class="text-[12px] px-2 py-1 rounded border border-border hover:bg-bg-muted">View</a></td></tr>
+        <tr><td class="pl-5 py-3"><a href="#" class="font-sans font-semibold hover:underline">MSN</a></td><td class="font-sans text-fg-muted">Consumer</td><td class="text-right num">24.6</td><td class="text-right num">2.5</td><td class="text-right num">12.8</td><td class="text-right num">2,400</td><td class="text-right num">1.6</td><td class="text-right num">1.1</td><td class="text-right pr-5"><a href="#" class="text-[12px] px-2 py-1 rounded border border-border hover:bg-bg-muted">View</a></td></tr>
+      </tbody>
+    </table>
+    <!-- Pagination -->
+    <div class="h-14 px-5 flex items-center justify-between border-t border-border text-[13px]">
+      <div class="text-fg-muted">Showing <b class="text-fg">1–13</b> of <b class="text-fg">287</b> symbols</div>
+      <div class="flex items-center gap-1">
+        <button class="h-8 w-8 grid place-items-center rounded border border-border text-fg-muted hover:bg-bg-muted" disabled>◀</button>
+        <button class="h-8 w-8 grid place-items-center rounded bg-fg text-bg">1</button>
+        <button class="h-8 w-8 grid place-items-center rounded border border-border hover:bg-bg-muted">2</button>
+        <button class="h-8 w-8 grid place-items-center rounded border border-border hover:bg-bg-muted">3</button>
+        <span class="px-2 text-fg-muted">…</span>
+        <button class="h-8 w-8 grid place-items-center rounded border border-border hover:bg-bg-muted">23</button>
+        <button class="h-8 w-8 grid place-items-center rounded border border-border hover:bg-bg-muted">▶</button>
+      </div>
+    </div>
+  </div>
+
+  <p class="mt-6 text-[11px] text-fg-muted">
+    Data: <code>GET /api/v1/screener?year=2026&amp;week=21</code> · client-side sort/filter via TanStack Table · CSV export is a client-side blob of the current filtered rows.
+  </p>
+
+</main>
+</body>
+</html>
