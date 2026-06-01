@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mekong-api
+  namespace: mekong-platform
+  labels:
+    app: mekong-api
+    app.kubernetes.io/part-of: mekong
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mekong-api
+  template:
+    metadata:
+      labels:
+        app: mekong-api
+        app.kubernetes.io/part-of: mekong
+    spec:
+      containers:
+        - name: mekong-api
+          image: mekong-api:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8090
+          env:
+            - name: PORT
+              value: "8090"
+            - name: GIN_MODE
+              value: release
+            - name: LOG_LEVEL
+              value: info
+            - name: MINIO_ENDPOINT
+              value: minio.mekong-data.svc.cluster.local:9000
+            - name: MINIO_ANALYSIS_BUCKET
+              value: market-analysis
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: access-key
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: secret-key
+            - name: POSTGRES_URL
+              valueFrom:
+                secretKeyRef:
+                  name: platform-postgres
+                  key: url
+            - name: POSTGRES_MAX_CONNS
+              value: "10"
+            - name: CACHE_TTL_SECONDS
+              value: "300"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 8090
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 8090
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mekong-api
+  namespace: mekong-platform
+  labels:
+    app: mekong-api
+    app.kubernetes.io/part-of: mekong
+spec:
+  selector:
+    app: mekong-api
+  ports:
+    - port: 8090
+      targetPort: 8090

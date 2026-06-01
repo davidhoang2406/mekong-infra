@@ -1,7 +1,11 @@
 .PHONY: k8s-namespaces k8s-secrets k8s-rbac k8s-operators \
         k8s-data-up k8s-processing-up k8s-pipeline-up k8s-dagster-up k8s-logging-up k8s-dev-up \
+        k8s-platform-up k8s-platform-down k8s-api-image \
         k8s-up k8s-down k8s-status \
-        k8s-topics-create k8s-minio-init
+        k8s-topics-create k8s-minio-init \
+        platform-up platform-down build-api build-ws build-web
+
+COMPOSE := docker compose -f docker-compose.yml
 
 KUBECTL := kubectl
 HELM    := helm
@@ -28,6 +32,7 @@ k8s-namespaces: ## Create all mekong namespaces
 	$(KUBECTL) apply -f k8s/mekong-orchestration/namespace.yaml
 	$(KUBECTL) apply -f k8s/mekong-observability/namespace.yaml
 	$(KUBECTL) apply -f k8s/mekong-dev/namespace.yaml
+	$(KUBECTL) apply -f k8s/mekong-platform/namespace.yaml
 
 k8s-secrets: ## Apply secrets (fill in k8s/secrets/ values first — files are gitignored)
 	@for f in k8s/secrets/minio-credentials.yaml k8s/secrets/dagster-postgres.yaml k8s/secrets/telegram-credentials.yaml; do \
@@ -42,7 +47,7 @@ k8s-secrets: ## Apply secrets (fill in k8s/secrets/ values first — files are g
 	@echo "Mirroring minio-credentials to all namespaces..."
 	@MINIO_ACCESS=$$($(KUBECTL) get secret minio-credentials -n mekong-data -o jsonpath='{.data.access-key}' | base64 -d); \
 	MINIO_SECRET=$$($(KUBECTL) get secret minio-credentials -n mekong-data -o jsonpath='{.data.secret-key}' | base64 -d); \
-	for ns in mekong-pipeline mekong-processing mekong-orchestration mekong-dev; do \
+	for ns in mekong-pipeline mekong-processing mekong-orchestration mekong-dev mekong-platform; do \
 		$(KUBECTL) create secret generic minio-credentials -n $$ns \
 			--from-literal=access-key="$$MINIO_ACCESS" \
 			--from-literal=secret-key="$$MINIO_SECRET" \
@@ -148,3 +153,43 @@ k8s-down: ## Delete all mekong K8s resources (PVCs preserved — data survives)
 	$(KUBECTL) delete -f k8s/rbac/ --ignore-not-found
 	$(KUBECTL) delete -f k8s/ingress.yaml --ignore-not-found
 	$(HELM) uninstall loki -n mekong-observability --ignore-not-found
+
+# ── Docker Compose — Data Platform ───────────────────────────────────────────
+
+build-api: ## Build mekong-api Docker image
+	$(COMPOSE) build mekong-api
+
+build-ws: ## Build mekong-ws Docker image
+	$(COMPOSE) build mekong-ws
+
+build-web: ## Build mekong-web Docker image
+	$(COMPOSE) build mekong-web
+
+platform-up: ## Start data platform (Postgres + API + Kong) → http://localhost:3002
+	$(COMPOSE) up -d postgres mekong-api kong
+
+platform-down: ## Stop data platform
+	$(COMPOSE) stop kong mekong-api postgres
+
+# ── Kubernetes — Data Platform ────────────────────────────────────────────────
+
+k8s-api-image: ## Build mekong-api image inside minikube's Docker daemon
+	cd ../mekong-api && eval $$(minikube docker-env) && docker build -t mekong-api:latest .
+
+k8s-platform-up: ## Deploy mekong-platform namespace, Postgres, mekong-api → api.mekong.local
+	$(KUBECTL) apply -f k8s/mekong-platform/namespace.yaml
+	$(KUBECTL) apply -f k8s/secrets/platform-postgres.yaml
+	@MINIO_ACCESS=$$($(KUBECTL) get secret minio-credentials -n mekong-data -o jsonpath='{.data.access-key}' | base64 -d); \
+	MINIO_SECRET=$$($(KUBECTL) get secret minio-credentials -n mekong-data -o jsonpath='{.data.secret-key}' | base64 -d); \
+	$(KUBECTL) create secret generic minio-credentials -n mekong-platform \
+		--from-literal=access-key="$$MINIO_ACCESS" \
+		--from-literal=secret-key="$$MINIO_SECRET" \
+		--dry-run=client -o yaml | $(KUBECTL) apply -f -
+	$(KUBECTL) apply -f k8s/mekong-platform/postgres-statefulset.yaml
+	$(KUBECTL) apply -f k8s/mekong-platform/mekong-api-deployment.yaml
+	$(KUBECTL) apply -f k8s/ingress.yaml
+
+k8s-platform-down: ## Remove mekong-platform resources
+	$(KUBECTL) delete -f k8s/mekong-platform/mekong-api-deployment.yaml --ignore-not-found
+	$(KUBECTL) delete -f k8s/mekong-platform/postgres-statefulset.yaml --ignore-not-found
+	$(KUBECTL) delete -f k8s/mekong-platform/namespace.yaml --ignore-not-found

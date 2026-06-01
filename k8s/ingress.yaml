@@ -2,7 +2,7 @@
 #   minikube addons enable ingress
 #
 # Add to /etc/hosts (get minikube IP via `minikube ip`):
-#   <minikube-ip> dagster.mekong.local grafana.mekong.local kafka-ui.mekong.local minio.mekong.local jupyter.mekong.local spark-history.mekong.local flink.mekong.local
+#   <minikube-ip> dagster.mekong.local grafana.mekong.local kafka-ui.mekong.local minio.mekong.local jupyter.mekong.local spark-history.mekong.local flink.mekong.local api.mekong.local
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -137,3 +137,26 @@ spec:
                 name: jupyter
                 port:
                   number: 8888
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mekong-ingress-platform
+  namespace: mekong-platform
+  labels:
+    app.kubernetes.io/part-of: mekong
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: api.mekong.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: mekong-api
+                port:
+                  number: 8090
