@@ -15,6 +15,9 @@ data:
     telemetry:
       enabled: false
 
+    auto_materialize:
+      enabled: true
+
     run_launcher:
       module: dagster_k8s
       class: K8sRunLauncher
