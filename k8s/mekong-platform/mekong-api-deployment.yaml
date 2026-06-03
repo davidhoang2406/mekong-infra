@@ -19,8 +19,8 @@ spec:
     spec:
       containers:
         - name: mekong-api
-          image: mekong-api:latest
-          imagePullPolicy: Never
+          image: ghcr.io/davidhoang2406/mekong-api:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8090
           env:
