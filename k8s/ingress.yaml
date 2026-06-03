@@ -145,8 +145,6 @@ metadata:
   namespace: mekong-platform
   labels:
     app.kubernetes.io/part-of: mekong
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
   ingressClassName: nginx
   rules:
