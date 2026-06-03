@@ -45,10 +45,11 @@ services:
   #       config:
   #         allow: ["172.16.0.0/12"]
 
-  # React SPA (Phase 2)
-  # - name: web
-  #   url: http://mekong-web:80
-  #   routes:
-  #     - name: web-root
-  #       paths: ["/"]
-  #       strip_path: false
+  # React SPA (Phase 2) — catch-all; /api (and Phase 3 /ws) match first because
+  # Kong prefers the more specific path prefix.
+  - name: web
+    url: http://mekong-web:80
+    routes:
+      - name: web-root
+        paths: ["/"]
+        strip_path: false
