@@ -126,6 +126,25 @@ services:
         reservations:
           memory: 128m
 
+  mekong-web:
+    build:
+      context: ${MEKONG_WEB_DIR:-../mekong-web}
+      dockerfile: Dockerfile
+    container_name: mekong-web
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+        reservations:
+          memory: 32m
+
   kong:
     image: kong:3.9
     container_name: kong
@@ -141,6 +160,8 @@ services:
       - ./kong/kong.yml:/etc/kong/kong.yml:ro
     depends_on:
       mekong-api:
+        condition: service_healthy
+      mekong-web:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "kong", "health"]

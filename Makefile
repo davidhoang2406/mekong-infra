@@ -165,11 +165,11 @@ build-ws: ## Build mekong-ws Docker image
 build-web: ## Build mekong-web Docker image
 	$(COMPOSE) build mekong-web
 
-platform-up: ## Start data platform (Postgres + API + Kong) → http://localhost:3002
-	$(COMPOSE) up -d postgres mekong-api kong
+platform-up: ## Start data platform (Postgres + API + Web + Kong) → http://localhost:3002
+	$(COMPOSE) up -d postgres mekong-api mekong-web kong
 
 platform-down: ## Stop data platform
-	$(COMPOSE) stop kong mekong-api postgres
+	$(COMPOSE) stop kong mekong-web mekong-api postgres
 
 # ── Kubernetes — Data Platform ────────────────────────────────────────────────
 
