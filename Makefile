@@ -116,7 +116,7 @@ k8s-dev-up: ## Deploy JupyterLab
 
 # ── Full stack ────────────────────────────────────────────────────────────────
 
-k8s-up: k8s-namespaces k8s-secrets k8s-rbac k8s-data-up k8s-processing-up k8s-pipeline-up k8s-dagster-up k8s-logging-up k8s-dev-up ## Bring up full K8s stack
+k8s-up: k8s-namespaces k8s-secrets k8s-rbac k8s-data-up k8s-processing-up k8s-pipeline-up k8s-dagster-up k8s-logging-up k8s-dev-up k8s-platform-up ## Bring up full K8s stack
 	@echo ""
 	@echo "Stack deployed. Run these next:"
 	@echo "  make k8s-topics-create    — create Kafka topics"
@@ -143,8 +143,12 @@ k8s-status: ## Show pod status across all mekong namespaces
 	@echo ""
 	@echo "=== mekong-dev ==="
 	$(KUBECTL) get pods -n mekong-dev
+	@echo ""
+	@echo "=== mekong-platform ==="
+	$(KUBECTL) get pods -n mekong-platform
 
 k8s-down: ## Delete all mekong K8s resources (PVCs preserved — data survives)
+	$(KUBECTL) delete -f k8s/mekong-platform/ --ignore-not-found
 	$(KUBECTL) delete -f k8s/mekong-pipeline/ --ignore-not-found
 	$(KUBECTL) delete -f k8s/mekong-dev/ --ignore-not-found
 	$(KUBECTL) delete -f k8s/mekong-orchestration/ --ignore-not-found
@@ -178,6 +182,9 @@ k8s-api-image: ## Build mekong-api image inside minikube's Docker daemon
 
 k8s-platform-up: ## Deploy mekong-platform namespace, Postgres, mekong-api → api.mekong.local
 	$(KUBECTL) apply -f k8s/mekong-platform/namespace.yaml
+	@if grep -q '<base64-' k8s/secrets/platform-postgres.yaml 2>/dev/null; then \
+		echo "ERROR: k8s/secrets/platform-postgres.yaml still has placeholder values — fill them in before applying."; exit 1; \
+	fi
 	$(KUBECTL) apply -f k8s/secrets/platform-postgres.yaml
 	@MINIO_ACCESS=$$($(KUBECTL) get secret minio-credentials -n mekong-data -o jsonpath='{.data.access-key}' | base64 -d); \
 	MINIO_SECRET=$$($(KUBECTL) get secret minio-credentials -n mekong-data -o jsonpath='{.data.secret-key}' | base64 -d); \
@@ -187,9 +194,16 @@ k8s-platform-up: ## Deploy mekong-platform namespace, Postgres, mekong-api → a
 		--dry-run=client -o yaml | $(KUBECTL) apply -f -
 	$(KUBECTL) apply -f k8s/mekong-platform/postgres-statefulset.yaml
 	$(KUBECTL) apply -f k8s/mekong-platform/mekong-api-deployment.yaml
+	$(KUBECTL) apply -f k8s/mekong-platform/mekong-web-deployment.yaml
+	@echo "Mirroring platform-postgres URL to mekong-orchestration..."
+	@PG_URL=$$($(KUBECTL) get secret platform-postgres -n mekong-platform -o jsonpath='{.data.url}' | base64 -d); \
+	$(KUBECTL) create secret generic platform-postgres -n mekong-orchestration \
+		--from-literal=url="$$PG_URL" \
+		--dry-run=client -o yaml | $(KUBECTL) apply -f -
 	$(KUBECTL) apply -f k8s/ingress.yaml
 
 k8s-platform-down: ## Remove mekong-platform resources
+	$(KUBECTL) delete -f k8s/mekong-platform/mekong-web-deployment.yaml --ignore-not-found
 	$(KUBECTL) delete -f k8s/mekong-platform/mekong-api-deployment.yaml --ignore-not-found
 	$(KUBECTL) delete -f k8s/mekong-platform/postgres-statefulset.yaml --ignore-not-found
 	$(KUBECTL) delete -f k8s/mekong-platform/namespace.yaml --ignore-not-found
