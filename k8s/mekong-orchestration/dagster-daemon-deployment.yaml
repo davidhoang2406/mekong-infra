@@ -67,6 +67,11 @@ spec:
                   optional: true
             - name: DAGSTER_WEBSERVER_URL
               value: http://dagster.mekong.local
+            - name: PLATFORM_POSTGRES_URL
+              valueFrom:
+                secretKeyRef:
+                  name: platform-postgres
+                  key: url
           volumeMounts:
             - name: dagster-config
               mountPath: /opt/dagster/dagster_home/dagster.yaml

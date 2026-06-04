@@ -67,6 +67,11 @@ data:
                     key: chat-id
               - name: DAGSTER_WEBSERVER_URL
                 value: http://dagster.mekong.local
+              - name: PLATFORM_POSTGRES_URL
+                valueFrom:
+                  secretKeyRef:
+                    name: platform-postgres
+                    key: url
 
   workspace.yaml: |
     load_from:
