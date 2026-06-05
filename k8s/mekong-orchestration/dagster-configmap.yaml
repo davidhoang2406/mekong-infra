@@ -18,6 +18,12 @@ data:
     auto_materialize:
       enabled: true
 
+    run_coordinator:
+      module: dagster.core.run_coordinator
+      class: QueuedRunCoordinator
+      config:
+        max_concurrent_runs: 2
+
     run_launcher:
       module: dagster_k8s
       class: K8sRunLauncher
