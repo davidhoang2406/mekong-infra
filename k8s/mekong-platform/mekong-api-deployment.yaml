@@ -53,6 +53,8 @@ spec:
               value: "10"
             - name: CACHE_TTL_SECONDS
               value: "300"
+            - name: WS_INTERNAL_URL
+              value: http://mekong-ws.mekong-platform.svc.cluster.local:8091
           resources:
             requests:
               memory: "128Mi"

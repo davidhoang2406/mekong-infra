@@ -151,6 +151,13 @@ spec:
     - host: app.mekong.local
       http:
         paths:
+          - path: /ws
+            pathType: Prefix
+            backend:
+              service:
+                name: mekong-ws
+                port:
+                  number: 8091
           - path: /api
             pathType: Prefix
             backend:

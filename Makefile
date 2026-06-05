@@ -146,6 +146,9 @@ k8s-status: ## Show pod status across all mekong namespaces
 	@echo ""
 	@echo "=== mekong-platform ==="
 	$(KUBECTL) get pods -n mekong-platform
+	@echo ""
+	@echo "=== mekong-platform services ==="
+	$(KUBECTL) get svc -n mekong-platform
 
 k8s-down: ## Delete all mekong K8s resources (PVCs preserved — data survives)
 	$(KUBECTL) delete -f k8s/mekong-platform/ --ignore-not-found
@@ -193,6 +196,7 @@ k8s-platform-up: ## Deploy mekong-platform namespace, Postgres, mekong-api → a
 		--from-literal=secret-key="$$MINIO_SECRET" \
 		--dry-run=client -o yaml | $(KUBECTL) apply -f -
 	$(KUBECTL) apply -f k8s/mekong-platform/postgres-statefulset.yaml
+	$(KUBECTL) apply -f k8s/mekong-platform/mekong-ws-deployment.yaml
 	$(KUBECTL) apply -f k8s/mekong-platform/mekong-api-deployment.yaml
 	$(KUBECTL) apply -f k8s/mekong-platform/mekong-web-deployment.yaml
 	@echo "Mirroring platform-postgres URL to mekong-orchestration..."
@@ -204,6 +208,7 @@ k8s-platform-up: ## Deploy mekong-platform namespace, Postgres, mekong-api → a
 
 k8s-platform-down: ## Remove mekong-platform resources
 	$(KUBECTL) delete -f k8s/mekong-platform/mekong-web-deployment.yaml --ignore-not-found
+	$(KUBECTL) delete -f k8s/mekong-platform/mekong-ws-deployment.yaml --ignore-not-found
 	$(KUBECTL) delete -f k8s/mekong-platform/mekong-api-deployment.yaml --ignore-not-found
 	$(KUBECTL) delete -f k8s/mekong-platform/postgres-statefulset.yaml --ignore-not-found
 	$(KUBECTL) delete -f k8s/mekong-platform/namespace.yaml --ignore-not-found
