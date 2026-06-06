@@ -1,8 +1,16 @@
-# Requires nginx ingress controller:
-#   minikube addons enable ingress
+# All ingresses route through Kong Ingress Controller.
+# Install Kong before applying:
+#   helm repo add kong https://charts.konghq.com
+#   helm install kong kong/ingress -n kong --create-namespace
 #
-# Add to /etc/hosts (get minikube IP via `minikube ip`):
-#   <minikube-ip> dagster.mekong.local grafana.mekong.local kafka-ui.mekong.local minio.mekong.local jupyter.mekong.local spark-history.mekong.local flink.mekong.local api.mekong.local app.mekong.local
+# Add to /etc/hosts (127.0.0.1 — access via kubectl port-forward):
+#   127.0.0.1 dagster.mekong.local grafana.mekong.local kafka-ui.mekong.local minio.mekong.local jupyter.mekong.local spark-history.mekong.local flink.mekong.local api.mekong.local app.mekong.local
+#
+# Port-forward Kong proxy:
+#   kubectl port-forward -n kong svc/kong-gateway-proxy 8080:80
+#
+# Platform ingress (app.mekong.local, api.mekong.local) with CORS plugin:
+#   see k8s/kong/ingress-platform.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -10,10 +18,8 @@ metadata:
   namespace: mekong-data
   labels:
     app.kubernetes.io/part-of: mekong
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
-  ingressClassName: nginx
+  ingressClassName: kong
   rules:
     - host: kafka-ui.mekong.local
       http:
@@ -43,10 +49,8 @@ metadata:
   namespace: mekong-processing
   labels:
     app.kubernetes.io/part-of: mekong
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
-  ingressClassName: nginx
+  ingressClassName: kong
   rules:
     - host: flink.mekong.local
       http:
@@ -76,10 +80,8 @@ metadata:
   namespace: mekong-orchestration
   labels:
     app.kubernetes.io/part-of: mekong
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
-  ingressClassName: nginx
+  ingressClassName: kong
   rules:
     - host: dagster.mekong.local
       http:
@@ -99,10 +101,8 @@ metadata:
   namespace: mekong-observability
   labels:
     app.kubernetes.io/part-of: mekong
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
-  ingressClassName: nginx
+  ingressClassName: kong
   rules:
     - host: grafana.mekong.local
       http:
@@ -122,10 +122,8 @@ metadata:
   namespace: mekong-dev
   labels:
     app.kubernetes.io/part-of: mekong
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
-  ingressClassName: nginx
+  ingressClassName: kong
   rules:
     - host: jupyter.mekong.local
       http:
@@ -137,48 +135,3 @@ spec:
                 name: jupyter
                 port:
                   number: 8888
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: mekong-ingress-platform
-  namespace: mekong-platform
-  labels:
-    app.kubernetes.io/part-of: mekong
-spec:
-  ingressClassName: nginx
-  rules:
-    - host: app.mekong.local
-      http:
-        paths:
-          - path: /ws
-            pathType: Prefix
-            backend:
-              service:
-                name: mekong-ws
-                port:
-                  number: 8091
-          - path: /api
-            pathType: Prefix
-            backend:
-              service:
-                name: mekong-api
-                port:
-                  number: 8090
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: mekong-web
-                port:
-                  number: 80
-    - host: api.mekong.local
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: mekong-api
-                port:
-                  number: 8090
