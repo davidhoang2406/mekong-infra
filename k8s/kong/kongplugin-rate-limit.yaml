@@ -1,0 +1,10 @@
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: rate-limit
+  namespace: mekong-platform
+plugin: rate-limiting
+config:
+  minute: 100
+  policy: local
+  fault_tolerant: true
