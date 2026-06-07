@@ -4,3 +4,7 @@ __pycache__/
 .env
 .env.*
 .idea/
+
+# Secret manifests — fill in from templates locally, never commit the real values
+k8s/**/*-secret.yaml
+!k8s/**/*-secret.yaml.template
