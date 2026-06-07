@@ -6,7 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/part-of: mekong
   annotations:
-    konghq.com/plugins: cors
+    konghq.com/plugins: cors,rate-limit
     # Kong passes WebSocket upgrades automatically for http/https routes
 spec:
   ingressClassName: kong
