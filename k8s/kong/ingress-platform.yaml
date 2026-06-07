@@ -45,3 +45,21 @@ spec:
                 name: mekong-api
                 port:
                   number: 8090
+    # OAuth callbacks arrive at localhost:8080 (OAUTH_REDIRECT_BASE)
+    - host: localhost
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: mekong-api
+                port:
+                  number: 8090
+          - path: /auth/callback
+            pathType: Prefix
+            backend:
+              service:
+                name: mekong-web
+                port:
+                  number: 80
