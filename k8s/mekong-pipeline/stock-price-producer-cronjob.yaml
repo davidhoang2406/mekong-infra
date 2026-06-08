@@ -7,8 +7,8 @@ metadata:
     app: stock-price-producer
     app.kubernetes.io/part-of: mekong
 spec:
-  # 09:00 ICT (UTC+7) = 02:00 UTC, Monday–Friday
-  schedule: "0 2 * * 1-5"
+  # 09:00 ICT, Monday–Friday
+  schedule: "0 9 * * 1-5"
   timeZone: "Asia/Ho_Chi_Minh"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 1
