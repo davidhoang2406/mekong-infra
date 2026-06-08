@@ -91,7 +91,8 @@ k8s-processing-up: ## Deploy Flink + Spark History (requires k8s-operators first
 
 k8s-pipeline-up: ## Deploy producers + storage consumer
 	$(KUBECTL) apply -f k8s/mekong-pipeline/namespace.yaml
-	$(KUBECTL) apply -f k8s/mekong-pipeline/stock-price-producer-deployment.yaml
+	$(KUBECTL) apply -f k8s/mekong-pipeline/stock-price-producer-cronjob.yaml
+	$(KUBECTL) apply -f k8s/mekong-pipeline/cronjob-rbac.yaml
 	$(KUBECTL) apply -f k8s/mekong-pipeline/crypto-price-producer-deployment.yaml
 	$(KUBECTL) apply -f k8s/mekong-pipeline/storage-consumer-deployment.yaml
 
